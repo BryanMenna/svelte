@@ -137,7 +137,8 @@ export async function POST({ request }) {
           nombre: user.Nombre,
           apellido: user.Apellido,
           area: user.Area,
-          tipo: user.Tipo
+          tipo: user.Tipo,
+          foto: user.Foto
         }
       }), {
         status: 200,
