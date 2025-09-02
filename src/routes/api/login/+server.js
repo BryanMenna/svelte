@@ -1,4 +1,3 @@
-// src/routes/api/login/+server.js
 import { getConnection } from '$lib/db.js';
 import { json } from '@sveltejs/kit';
 import { serialize } from 'cookie';
@@ -46,9 +45,13 @@ export async function POST({ request }) {
       return json({ success: false, error: 'Faltan datos de usuario o contraseña' }, { status: 400 });
     }
 
+    // Usamos el pool de conexiones
     const conn = await getConnection();
     // @ts-ignore
-    const [rows] = await conn.execute('SELECT * FROM us_usuarios WHERE Usuario = ?', [username]);
+    const [rows] = await conn.execute(
+      'SELECT * FROM us_usuarios WHERE Usuario = ?',
+      [username]
+    );
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
@@ -59,8 +62,6 @@ export async function POST({ request }) {
     const hasta = user.Hasta ? new Date(user.Hasta) : null;
 
     // -------- LÓGICA DE ESTADOS -------- //
-
-    // 1. Si está BLOQUEADO
     if (user.Estado === 'Bloqueado') {
       if (hasta && hasta > ahora) {
         return json({
@@ -69,7 +70,6 @@ export async function POST({ request }) {
           bloqueado_hasta: hasta
         });
       } else {
-        // Reactiva si ya terminó el bloqueo
         // @ts-ignore
         await conn.execute(
           'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
@@ -79,7 +79,6 @@ export async function POST({ request }) {
       }
     }
 
-    // 2. Si está de VACACIONES
     if (user.Estado === 'Vacaciones') {
       if (hasta && hasta > ahora) {
         return json({
@@ -88,7 +87,6 @@ export async function POST({ request }) {
           bloqueado_hasta: hasta
         });
       } else {
-        // Reactiva si ya terminaron las vacaciones
         // @ts-ignore
         await conn.execute(
           'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
@@ -97,8 +95,6 @@ export async function POST({ request }) {
         user.Estado = 'Activo';
       }
     }
-
-    // Si llega aquí, Estado es Activo
 
     // ----- VERIFICAR CONTRASEÑA -----
     let passwordCorrecta = false;
@@ -154,10 +150,12 @@ export async function POST({ request }) {
     intentos += 1;
 
     if (intentos >= 3) {
-      // Bloquear el usuario por 24h
       const bloqueo = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
       // @ts-ignore
-      await conn.execute('UPDATE us_usuarios SET Estado = "Bloqueado", Hasta = ? WHERE ID = ?', [bloqueo, user.ID]);
+      await conn.execute(
+        'UPDATE us_usuarios SET Estado = "Bloqueado", Hasta = ? WHERE ID = ?',
+        [bloqueo, user.ID]
+      );
       intentosPorUsuario.delete(username);
 
       return json({
