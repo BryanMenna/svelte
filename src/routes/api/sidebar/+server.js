@@ -1,4 +1,4 @@
-import { getConnection } from '$lib/db.js';
+import { pool } from '$lib/db.js';
 import { json } from '@sveltejs/kit';
 
 // @ts-ignore
@@ -11,20 +11,15 @@ export async function GET({ cookies }) {
   }
 
   try {
-    const connection = await getConnection();
-
     // @ts-ignore
-    const [rows] = await connection.query(
-      "CALL usp_accesos(?, ?)",
-      [userId, tipoUsuario]
-    );
+    const [rows] = await pool.query("CALL usp_accesos(?, ?)", [userId, tipoUsuario]);
     const modulos = rows[0];
 
-    // Multi-nivel
+    // Mapa para construir jerarquía
     const mapa = {};
     const salida = [];
 
-    // Padres (nivel 1, ID longitud 2, no navegables)
+    // Nivel 1 (padres, ID longitud 2)
     for (const mod of modulos) {
       if (mod.ID.length === 2) {
         // @ts-ignore
@@ -34,7 +29,7 @@ export async function GET({ cookies }) {
       }
     }
 
-    // Hijos (nivel 2, ID longitud 4)
+    // Nivel 2 (hijos, ID longitud 4)
     for (const mod of modulos) {
       if (mod.ID.length === 4) {
         const nodo = {
@@ -55,7 +50,7 @@ export async function GET({ cookies }) {
       }
     }
 
-    // Nietos (>4)
+    // Nivel 3+ (nietos, ID longitud >4)
     for (const mod of modulos) {
       if (mod.ID.length > 4) {
         const nodo = {
@@ -77,7 +72,7 @@ export async function GET({ cookies }) {
     return json(salida);
 
   } catch (error) {
-    console.error("Error ejecutando usp_accesos:", error);
+    console.error("❌ Error ejecutando usp_accesos:", error);
     return json({ error: 'Error interno' }, { status: 500 });
   }
 }
