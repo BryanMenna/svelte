@@ -1,6 +1,5 @@
 // src/routes/api/login/+server.js
-// @ts-ignore
-import pool from '$lib/db.js';
+import { getConnection } from '$lib/db.js';
 import { json } from '@sveltejs/kit';
 import { serialize } from 'cookie';
 // @ts-ignore
@@ -47,12 +46,9 @@ export async function POST({ request }) {
       return json({ success: false, error: 'Faltan datos de usuario o contraseña' }, { status: 400 });
     }
 
-    // 🔹 usamos pool en lugar de crear conexión nueva
+    const conn = await getConnection();
     // @ts-ignore
-    const [rows] = await pool.execute(
-      'SELECT * FROM us_usuarios WHERE Usuario = ?',
-      [username]
-    );
+    const [rows] = await conn.execute('SELECT * FROM us_usuarios WHERE Usuario = ?', [username]);
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
@@ -75,7 +71,7 @@ export async function POST({ request }) {
       } else {
         // Reactiva si ya terminó el bloqueo
         // @ts-ignore
-        await pool.execute(
+        await conn.execute(
           'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
           [user.ID]
         );
@@ -94,7 +90,7 @@ export async function POST({ request }) {
       } else {
         // Reactiva si ya terminaron las vacaciones
         // @ts-ignore
-        await pool.execute(
+        await conn.execute(
           'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
           [user.ID]
         );
@@ -112,7 +108,7 @@ export async function POST({ request }) {
       passwordCorrecta = true;
       const nuevoHash = await bcrypt.hash(password, 10);
       // @ts-ignore
-      await pool.execute('UPDATE us_usuarios SET Clave = ? WHERE ID = ?', [nuevoHash, user.ID]);
+      await conn.execute('UPDATE us_usuarios SET Clave = ? WHERE ID = ?', [nuevoHash, user.ID]);
     }
 
     if (passwordCorrecta) {
@@ -161,10 +157,7 @@ export async function POST({ request }) {
       // Bloquear el usuario por 24h
       const bloqueo = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
       // @ts-ignore
-      await pool.execute(
-        'UPDATE us_usuarios SET Estado = "Bloqueado", Hasta = ? WHERE ID = ?',
-        [bloqueo, user.ID]
-      );
+      await conn.execute('UPDATE us_usuarios SET Estado = "Bloqueado", Hasta = ? WHERE ID = ?', [bloqueo, user.ID]);
       intentosPorUsuario.delete(username);
 
       return json({
