@@ -90,12 +90,6 @@ function logout() {
   goto('/login');
 }
 
-function capitalizar(palabra) {
-  if (!palabra) return "";
-  return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
-}
-
-
 </script>
 
 <!-- HEADER -->
@@ -114,31 +108,28 @@ function capitalizar(palabra) {
 
 <!-- NAV con breadcrumb dinámico -->
 <nav
- class="fixed top-14 left-0 right-0 h-10 flex items-center px-6 border-b border-surface-500 text-sm text-gray-300 bg-[#212631] z-40 transition-all duration-300"
-
+  class="fixed top-14 left-0 right-0 h-10 flex items-center px-6 border-b border-surface-500 text-sm text-gray-300 bg-[#212631] z-40 transition-all duration-300"
   class:ml-64={sidebarVisible}
   class:ml-0={!sidebarVisible}
   style="border-bottom: 1px solid #323a49;"
 >
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <span class="cursor-pointer hover:underline text-[#5e5cd0]" onclick={() => goto('/dashboard')}>Inicio</span>
+  <span class="cursor-pointer hover:underline" onclick={() => goto('/dashboard')}>Inicio</span>
   {#each breadcrumbParts as part, i}
     <span class="mx-2">/</span>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-   <span
-  class="cursor-pointer hover:underline"
-  class:text-blue-400={i === breadcrumbParts.length - 1}
-  style="color: #fff9;"
-  onclick={() => irARuta(breadcrumbParts.slice(0, i + 1).join("/"))}
->
-  {capitalizar(part)}
-</span>
-
+    <span
+      class="cursor-pointer hover:underline"
+      class:text-blue-400={i === breadcrumbParts.length - 1}
+      style="color: #27bafd;"
+      onclick={() => irARuta(breadcrumbParts.slice(0, i + 1).join("/"))}
+    >
+      {part}
+    </span>
   {/each}
 </nav>
-
 
 <!-- TOAST de bienvenida -->
 {#if mostrarToast}
@@ -257,7 +248,7 @@ aside::-webkit-scrollbar-thumb {
 }
 
 aside::-webkit-scrollbar-thumb:hover {
-  background-color: #292e39;
+  background-color: #1c2129;
 }
 
 /* Para Firefox */
