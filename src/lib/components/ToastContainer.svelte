@@ -4,8 +4,8 @@
     import { toasts } from '$lib/utils/mostrarToast.js';
 
     const colores = {
-        success: "bg-green-600 text-white",
-        danger: "bg-red-600 text-white",
+        success: "bg-[#00c950] text-white",
+        danger: "bg-[#fb2c36] text-white",
         warning: "bg-yellow-400 text-black",
         info: "bg-sky-600 text-white",
         primary: "bg-blue-500 text-white",

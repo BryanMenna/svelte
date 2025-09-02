@@ -1,9 +1,10 @@
+
 <script>
 // @ts-nocheck
 import ToastContainer from '$lib/components/ToastContainer.svelte';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { onMount } from 'svelte';
-import { Pencil, Eye, Trash2, Search, Plus } from 'lucide-svelte';
+import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
 import FormularioUsuario from '$lib/components/FormularioUsuario.svelte';
 
 let usuarios = [];
@@ -31,7 +32,7 @@ const usuarioVacio = {
 // Cargar usuarios
 onMount(cargarUsuarios);
 
-async function cargarUsuarios() {
+async function cargarUsuarios() {  //⬅ Cargar Usuarios
     const res = await fetch('/api/usuarios');
     const data = await res.json();
     if (data.success) {
@@ -136,7 +137,6 @@ function getColorClasses(acc) {
     return { header: 'bg-gray-500', btn: 'bg-gray-500 hover:bg-gray-600', outline: 'border-gray-500 text-gray-500 hover:bg-gray-500 hover:text-white' };
 }
 
-// Dinámico: colores actuales
 $: colores = getColorClasses(accionFormulario);
 
 function formularioTitulo(acc) {
@@ -178,7 +178,7 @@ async function guardarUsuario(e) {
     if (data.success) {
         mostrarToast({ mensaje: data.mensaje, tipo: "success" });
         cerrarFormulario();
-        await cargarUsuarios();
+        await cargarUsuarios();// ⬅ Aquí se recargan los datos de la tabla
     } else {
         mostrarToast({ mensaje: data.error, tipo: "danger" });
     }
@@ -201,62 +201,107 @@ async function eliminarUsuario() {
         mostrarToast({ mensaje: data.error, tipo: "danger" });
     }
 }
+
+//   botón PDF (por ahora placeholder)
+function descargarPDF() {
+    console.log("Función DESCARGAR PDF aún no implementada");
+    mostrarToast({
+        mensaje: "Función de exportar PDF aún no implementada",
+        tipo: "warning"
+    });
+}
 </script>
+
 
 <ToastContainer />
 
+
 <div class="flex flex-col items-center w-full mt-16 transition-all duration-300"> 
-    <!-- Barra de búsqueda + botón -->
+    <!-- Barra de búsqueda + botones -->
+    {#if !mostrarFormulario}
     <div class="w-full flex items-center my-4">
         <div class="flex items-center gap-2">
+            <!-- Campo de búsqueda -->
             <div class="relative w-64">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
                 <input
                     type="text"
                     class="w-full pl-10 bg-surface-700 text-onSurface border-none focus:outline-none focus:ring-0"
                     placeholder="Buscar..."
+                    title="Buscar..."
                     value={filtro}
-                    style="color: white; background:#323a49; border: none; box-shadow: none;"
+                    style="color: white; background:#2a2f3a; border: none; box-shadow: none;"
                     oninput={onFiltroInput}
                 />
             </div>
+
+            <!-- Botón Agregar Usuario -->
             <button
                 class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
                 style="background-color: #21A9FD; width: 32px; height: 32px;"
+                title="Nuevo Usuario"
                 onclick={abrirFormularioNuevo}
             >
                 <Plus class="w-5 h-5" />
             </button>
+
+            <!-- Botón Descargar PDF (placeholder por ahora) -->
+            <button
+                class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+                style="background-color: #323a49; width: 35px; height: 35px;"
+                title="Descargar PDF"
+                onclick={descargarPDF}
+            >
+                <FileText class="w-5 h-5" />
+            </button>
         </div>
     </div>
+    {/if}
+
+
 
     <!-- Formulario expandible -->
     {#if mostrarFormulario}
     <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
-        <div class={`px-6 py-7 ${colores.header} text-white font-bold text-lg`}>
-            {formularioTitulo(accionFormulario)}
-        </div>
-        <div class="p-6 bg-[#242428]">
+<!-- HEADING FORMULARIO -->
+        <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
+
+           <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
+
+            <button
+                class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition"
+                style="background: transparent;"
+                aria-label="Cerrar"
+                onclick={cerrarFormulario}
+                >x</button>
+            </div>
+
+        <div class="p-6 bg-[#212631]">
             <FormularioUsuario 
-                {usuario} 
-                accionModal={accionFormulario}
-                disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
-                mostrarUsername={accionFormulario !== 'nuevo'} 
-                ordenAgregar={accionFormulario === 'nuevo'} 
-                on:submit={guardarUsuario}
+            {usuario} 
+            accionModal={accionFormulario}
+            disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
+            mostrarUsername={true}   
+            ordenAgregar={accionFormulario === 'nuevo'} 
+            on:submit={guardarUsuario}
             />
             <div class="flex justify-end gap-2 mt-4">
-                <button class={`px-4 py-2 rounded border ${colores.outline}`} onclick={cerrarFormulario}>Cerrar</button>
                 {#if accionFormulario === 'nuevo' || accionFormulario === 'editar'}
                     <button type="submit" form="form-usuario" class={`px-4 py-2 rounded text-white ${colores.btn}`}>Guardar</button>
                 {/if}
                 {#if accionFormulario === 'borrar'}
                     <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={eliminarUsuario}>Eliminar</button>
                 {/if}
+                {#if accionFormulario === 'ver'}
+                    <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={cerrarFormulario}>Cerrar</button>
+                {:else}
+                    <button class={`px-4 py-2 rounded border ${colores.outline}`} onclick={cerrarFormulario}>Cerrar</button>
+                {/if}
             </div>
         </div>
     </section>
     {/if}
+
 
     <!-- Tabla -->
     {#if !mostrarFormulario}
@@ -280,22 +325,26 @@ async function eliminarUsuario() {
                         <tr class="border-b border-surface-700">
                             <td class="px-4 py-2 flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-base" style="background-color: #4b4d56; color: #000000cc;">{u.name.charAt(0)}</div>
+                                <!--  NOMBRE Y APELLIDO  -->
                                 <div>
                                     <span>{u.name}</span><br />
                                     <small class="user-subinfo">{u.email}</small>
                                 </div>
                             </td>
+                            <!--  ROL  -->
                             <td class="px-4 py-2">
                                 <span>{u.tipo}</span><br />
                                 <small class="user-subinfo">{u.area}</small>
                             </td>
+                            <!--  ESTADO  -->
                             <td class="px-4 py-2">
-                                <span class={`px-2 py-1 rounded text-xs ${getStatusClasses(u.estado)}`}>{u.estado}</span>
+                                <span class={`px-4 py-1 rounded text-xs ${getStatusClasses(u.estado)}`}>{u.estado}</span>
                             </td>
+                            <!-- BOTON DE ACCIONES -->
                             <td class="px-4 py-2 flex gap-2">
-                                <button class="text-red-500 hover:scale-110" onclick={() => onClickBorrar(u)}><Trash2 class="w-4 h-4" /></button>
-                                <button class="text-blue-500 hover:scale-110" onclick={() => onClickEditar(u)}><Pencil class="w-4 h-4" /></button>
-                                <button class="text-green-500 hover:scale-110" onclick={() => onClickVer(u)}><Eye class="w-4 h-4" /></button>
+                                <button class="text-red-500 hover:scale-110" title="Eliminar Usuario" onclick={() => onClickBorrar(u)}><Trash2 class="w-4.3 h-5" /></button>
+                                <button class="text-blue-500 hover:scale-110" title="Editar Usuario" onclick={() => onClickEditar(u)}><Pencil class="w-4.3 h-5" /></button>
+                                <button class="text-green-500 hover:scale-110" title="Información del Usuario" onclick={() => onClickVer(u)}><Eye class="w-4.3  h-5" /></button>
                             </td>
                         </tr>
                     {/each}
@@ -305,6 +354,7 @@ async function eliminarUsuario() {
     </div>
     {/if}
 </div>
+
 
 <style>
 input::placeholder { color: #b0b0b0; opacity: 1; }
@@ -317,5 +367,11 @@ input:focus { outline: none; box-shadow: none; border-color: inherit; }
 .shadow-lg { box-shadow: 0 4px 14px rgba(0,0,0,0.15);}
 .rounded-lg { border-radius: 0.5rem;}
 .user-subinfo { font-style: italic; color: #777 !important; }
-.encabezado { padding: 4px 12px; text-align: left; color: #fff; font-size: 0.95rem; letter-spacing: 1px; font-weight: 400; text-transform: uppercase; background: transparent; }
+.encabezado { padding: 7px 18px; text-align: left;  font-size: 0.95rem; letter-spacing: 1px; font-weight: 400;  background: transparent; }
+tbody tr:nth-child(odd) {
+  background-color: #2a2f3a; /* gris oscuro */
+}
+tbody tr:nth-child(even) {
+  background-color: #212631; /* un poco más claro */
+}
 </style>
