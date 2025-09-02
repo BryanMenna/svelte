@@ -37,7 +37,7 @@
   <!-- Botón avatar -->
   <button
     class="flex items-center justify-center rounded-full w-10 h-10 bg-[#323a49] transition-shadow shadow-lg"
-    aria-label="Abrir menú de usuario" title="Perfil"
+    aria-label="Abrir menú de usuario"
     on:click={() => (menuOpen = !menuOpen)}
   >
     <User class="w-6 h-6 text-white" />
@@ -48,14 +48,14 @@
         Perfil de usuario
       </div>
       <button
-        class="w-full flex items-center text-left px-4 py-2 text-gray-300 hover:bg-white/10 transition" title="Perfil de usuario"
+        class="w-full flex items-center text-left px-4 py-2 text-gray-300 hover:bg-white/10 transition"
         on:click={editarUsuario}
       >
         <Pencil class="w-5 h-5 mr-2 text-white" />
         <span>Editar usuario</span>
       </button>
       <button
-        class="w-full flex items-center text-left px-4 py-2 text-gray-300 hover:bg-white/10 transition" title="Cerrar sesión"
+        class="w-full flex items-center text-left px-4 py-2 text-gray-300 hover:bg-white/10 transition"
         on:click={cerrarSesion}
       >
         <LogOut class="w-5 h-5 mr-2 text-white" />
