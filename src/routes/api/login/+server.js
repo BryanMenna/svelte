@@ -5,16 +5,22 @@ import { serialize } from 'cookie';
 // @ts-ignore
 import bcrypt from 'bcrypt';
 
+// Función para mostrar la fecha en formato local
 // @ts-ignore
 function fechaOK(fecha) {
   if (!fecha) return "";
   const fechaObj = new Date(fecha);
   return fechaObj.toLocaleString("es-AR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: false
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
   });
 }
 
+// Función para mostrar tiempo restante
 // @ts-ignore
 function TiempoRestante(inicio, fin) {
   const diferenciaMs = fin - inicio;
@@ -25,21 +31,25 @@ function TiempoRestante(inicio, fin) {
   return `${horas}h ${minutos}m ${segundos}s`;
 }
 
+// Mapa de intentos por usuario en memoria
 const intentosPorUsuario = new Map();
 // @ts-ignore
 const isDev = process.env.NODE_ENV !== 'production';
 
+// LOGIN ENDPOINT
 // @ts-ignore
 export async function POST({ request }) {
   try {
     const { username, password } = await request.json();
+
     if (!username || !password) {
       return json({ success: false, error: 'Faltan datos de usuario o contraseña' }, { status: 400 });
     }
 
     // @ts-ignore
     const [rows] = await pool.execute('SELECT * FROM us_usuarios WHERE Usuario = ?', [username]);
-    if (rows.length === 0) {
+
+    if (!Array.isArray(rows) || rows.length === 0) {
       return json({ success: false, error: 'Usuario no encontrado' }, { status: 404 });
     }
 
@@ -47,30 +57,47 @@ export async function POST({ request }) {
     const ahora = new Date();
     const hasta = user.Hasta ? new Date(user.Hasta) : null;
 
-    // Estados especiales
-    if (user.Estado === 'Bloqueado' && hasta && hasta > ahora) {
-      return json({
-        success: false,
-        error: `Usuario Bloqueado hasta el ${fechaOK(hasta)} (Tiempo Restante: ${TiempoRestante(ahora, hasta)})`,
-        bloqueado_hasta: hasta
-      });
-    }
-    if (user.Estado === 'Vacaciones' && hasta && hasta > ahora) {
-      return json({
-        success: false,
-        error: `Usuario de vacaciones hasta el ${fechaOK(hasta)} (Tiempo Restante: ${TiempoRestante(ahora, hasta)})`,
-        bloqueado_hasta: hasta
-      });
+    // -------- LÓGICA DE ESTADOS -------- //
+
+    if (user.Estado === 'Bloqueado') {
+      if (hasta && hasta > ahora) {
+        return json({
+          success: false,
+          error: `Usuario Bloqueado hasta el ${fechaOK(hasta)} (Tiempo Restante: ${TiempoRestante(ahora, hasta)})`,
+          bloqueado_hasta: hasta
+        });
+      } else {
+        // Reactiva si ya terminó el bloqueo o no hay fecha
+        // @ts-ignore
+        await pool.execute(
+          'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
+          [user.ID]
+        );
+        user.Estado = 'Activo';
+      }
     }
 
-    // Reactivar si corresponde
-    if ((user.Estado === 'Bloqueado' || user.Estado === 'Vacaciones') && (!hasta || hasta <= ahora)) {
-      // @ts-ignore
-      await pool.execute('UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?', [user.ID]);
-      user.Estado = 'Activo';
+    if (user.Estado === 'Vacaciones') {
+      if (hasta && hasta > ahora) {
+        return json({
+          success: false,
+          error: `Usuario de vacaciones hasta el ${fechaOK(hasta)} (Tiempo Restante: ${TiempoRestante(ahora, hasta)})`,
+          bloqueado_hasta: hasta
+        });
+      } else {
+        // Reactiva si ya terminaron las vacaciones o no hay fecha
+        // @ts-ignore
+        await pool.execute(
+          'UPDATE us_usuarios SET Estado = "Activo", Hasta = NULL WHERE ID = ?',
+          [user.ID]
+        );
+        user.Estado = 'Activo';
+      }
     }
 
-    // Verificar contraseña
+    // Si llega aquí, Estado es Activo
+
+    // ----- VERIFICAR CONTRASEÑA -----
     let passwordCorrecta = false;
     if (user.Clave.startsWith('$2b$')) {
       passwordCorrecta = await bcrypt.compare(password, user.Clave);
@@ -85,10 +112,18 @@ export async function POST({ request }) {
       intentosPorUsuario.delete(username);
 
       const sessionCookie = serialize('session', String(user.ID), {
-        path: '/', httpOnly: true, sameSite: 'strict', secure: !isDev, maxAge: 60 * 60 * 24
+        path: '/',
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: !isDev,
+        maxAge: 60 * 60 * 24
       });
       const tipoCookie = serialize('tipoUsuario', String(user.Tipo), {
-        path: '/', httpOnly: true, sameSite: 'strict', secure: !isDev, maxAge: 60 * 60 * 24
+        path: '/',
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: !isDev,
+        maxAge: 60 * 60 * 24
       });
 
       return new Response(JSON.stringify({
@@ -99,7 +134,8 @@ export async function POST({ request }) {
           nombre: user.Nombre,
           apellido: user.Apellido,
           area: user.Area,
-          tipo: user.Tipo
+          tipo: user.Tipo,
+          foto: user.Foto
         }
       }), {
         status: 200,
@@ -111,23 +147,30 @@ export async function POST({ request }) {
       });
     }
 
-    // Contraseña incorrecta
+    // ----- CONTRASEÑA INCORRECTA -----
     let intentos = intentosPorUsuario.get(username) || 0;
-    intentos++;
+    intentos += 1;
+
     if (intentos >= 3) {
+      // Bloquear el usuario por 24h
       const bloqueo = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
       // @ts-ignore
       await pool.execute('UPDATE us_usuarios SET Estado = "Bloqueado", Hasta = ? WHERE ID = ?', [bloqueo, user.ID]);
       intentosPorUsuario.delete(username);
+
       return json({
         success: false,
-        error: `Usuario bloqueado por 24 horas. Desbloqueo: ${fechaOK(bloqueo)} (Tiempo Restante: ${TiempoRestante(ahora, bloqueo)})`,
+        error: `Usuario bloqueado por 24 horas por múltiples intentos fallidos. Desbloqueo: ${fechaOK(bloqueo)} (Tiempo Restante: ${TiempoRestante(ahora, bloqueo)})`,
         bloqueado_hasta: bloqueo
       });
     } else {
       intentosPorUsuario.set(username, intentos);
-      return json({ success: false, error: `Contraseña incorrecta. Intentos: ${intentos}/3` });
+      return json({
+        success: false,
+        error: `Contraseña incorrecta. Intentos: ${intentos}/3`
+      });
     }
+
   } catch (error) {
     console.error('Error en /api/login:', error);
     // @ts-ignore
