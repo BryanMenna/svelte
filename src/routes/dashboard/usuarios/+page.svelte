@@ -262,7 +262,29 @@ function descargarPDF() {
 
     <!-- Formulario expandible -->
     {#if mostrarFormulario}
-    <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
+   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+   <!-- svelte-ignore a11y_no_static_element_interactions -->
+   <section
+  class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6"
+  tabindex="0"
+  onkeydown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (accionFormulario === 'nuevo' || accionFormulario === 'editar') {
+        document.getElementById("form-usuario")?.requestSubmit();
+      }
+      if (accionFormulario === 'borrar') {
+        eliminarUsuario();
+      }
+      if (accionFormulario === 'ver') {
+        cerrarFormulario();
+      }
+    }
+    if (e.key === "Escape") {
+      cerrarFormulario();
+    }
+  }}
+>
 <!-- HEADING FORMULARIO -->
         <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
 

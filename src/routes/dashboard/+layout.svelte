@@ -150,11 +150,13 @@ function capitalizar(palabra) {
 
 <div class="flex pt-14 min-h-screen" style="background: transparent;">
   <!-- SIDEBAR -->
-  <aside
-    class="fixed top-14 left-0 bottom-0 w-64 border-r border-surface-500 p-4 transition-transform duration-300 z-40 overflow-y-auto text-[#fff]"
-    style="background-color: #212631; border-right: 1px solid #323a49 !important;"
-    class:-translate-x-full={!sidebarVisible}
-  >
+ <aside
+  class="fixed top-14 left-0 w-64 border-r border-surface-500 p-4 transition-transform duration-300 z-40 text-[#fff] 
+         overflow-y-auto max-h-[calc(100vh-3.5rem)] md:bottom-0"
+  style="background-color: #212631; border-right: 1px solid #323a49 !important;"
+  class:-translate-x-full={!sidebarVisible}
+>
+
     {#each sidebarItems as grupo}
       {#if grupo.title}
         <div class="text-xs font-bold uppercase mt-4 mb-2 titulo-especial">{grupo.title}</div>
