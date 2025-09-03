@@ -72,6 +72,7 @@ async function initCalendar() {
     dateFormat: "Y-m-d H:i",
     time_24hr: true,
     allowInput: true,
+    disableMobile: true,
     defaultDate: usuarioLocal.hasta || undefined,
     plugins: [
       confirmDatePlugin({
