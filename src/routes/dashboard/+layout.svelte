@@ -7,21 +7,32 @@ import { Menu, X, ChevronDown } from 'lucide-svelte';
 import AvatarMenu from '$lib/components/AvatarMenu.svelte';
 import * as Icons from 'lucide-svelte';
 
+
+
 let sidebarItems = [];
 let sidebarVisible = true;
 let abiertos = {};
 let toastMsg = '';
 let mostrarToast = false;
 
+
 // Breadcrumb variables
 $: currentPath = $page.url.pathname.replace(/^\/dashboard\/?/, "");
 $: breadcrumbParts = currentPath ? currentPath.split("/") : [];
+
+$: tituloActual = breadcrumbParts.length
+  ? capitalizar(breadcrumbParts[0])
+  : "Inicio";
+
 
 // Navegar
 
 function navegar(ruta) {
   if (ruta && ruta !== "NULL") {
     goto('/dashboard/' + ruta);
+    if (window.innerWidth < 768) {
+      sidebarVisible = false;
+    }
   }
 }
 
@@ -100,6 +111,7 @@ function capitalizar(palabra) {
 
 <!-- HEADER -->
 <header class="fixed top-0 left-0 right-0 h-14 border-b border-surface-500 flex items-center px-4 z-50" style="background-color: #212631; border-bottom: 1px solid #323a49;">
+  
   <button class="btn btn-ghost p-2" onclick={toggleSidebar}>
     {#if sidebarVisible}
       <X class="w-6 h-6 text-white" />
@@ -231,6 +243,14 @@ function capitalizar(palabra) {
     class:ml-0={!sidebarVisible}
     style="background-color: #1d222b;"
   >
+  <!-- Título principal arriba de todo -->
+<div class="flex flex-col items-center w-full mt-16">
+  <h2 class="px-8 py-4 rounded-lg text-2xl font-semibold text-white" style="background: #323a49;">
+  {tituloActual}
+</h2>
+
+</div>
+   
     <slot />
   </main>
 </div>
@@ -267,6 +287,11 @@ aside {
   scrollbar-width: thin;
    scrollbar-color: #101318 #1c2129;
 }
+div.flex.pt-14.min-h-screen {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 
 
 </style>

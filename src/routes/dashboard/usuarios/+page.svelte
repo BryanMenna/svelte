@@ -1,4 +1,3 @@
-
 <script>
 // @ts-nocheck
 import ToastContainer from '$lib/components/ToastContainer.svelte';
@@ -32,7 +31,7 @@ const usuarioVacio = {
 // Cargar usuarios
 onMount(cargarUsuarios);
 
-async function cargarUsuarios() {  //⬅ Cargar Usuarios
+async function cargarUsuarios() {  
     const res = await fetch('/api/usuarios');
     const data = await res.json();
     if (data.success) {
@@ -41,6 +40,7 @@ async function cargarUsuarios() {  //⬅ Cargar Usuarios
             name: `${u.Nombre} ${u.Apellido}`,
             email: u.email,
             username: u.Usuario,
+            clave: u.Clave,
             tipo: u.tipo,
             IDarea: u.IDarea,
             area: u.areaDet,
@@ -57,6 +57,22 @@ async function cargarUsuarios() {  //⬅ Cargar Usuarios
 // Filtrado
 function onFiltroInput(e) { filtro = e.target.value.toLowerCase(); }
 $: usuariosFiltrados = usuarios.filter(u => u.name.toLowerCase().includes(filtro));
+
+//  Paginación
+let currentPage = 1;
+let itemsPerPage = 5; // cantidad de registros por página
+$: totalPages = Math.ceil(usuariosFiltrados.length / itemsPerPage);
+$: usuariosPaginados = usuariosFiltrados.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+);
+
+function nextPage() {
+    if (currentPage < totalPages) currentPage++;
+}
+function prevPage() {
+    if (currentPage > 1) currentPage--;
+}
 
 function getStatusClasses(status) {
     if (status === "Activo") return "bg-green-500 text-white";
@@ -105,8 +121,8 @@ function prepararUsuario(u) {
         tipo: u.tipo,
         area: u.IDarea ? String(u.IDarea) : '',
         status: u.estado,
-        clave: '',
-        repetirClave: '',
+        clave: u.clave ?? '',
+        nuevaClave: '',
         telefono: u.telefono ?? '',
         domicilio: u.domicilio ?? '',
         hasta: u.hasta ?? null 
@@ -156,7 +172,7 @@ async function guardarUsuario(e) {
         Telefono: datos.telefono ?? '',
         Correo: datos.email,
         Usuario: datos.username,
-        Clave: datos.clave,
+        Clave: datos.nuevaClave ? datos.nuevaClave : datos.clave,
         Tipo: datos.tipo,
         Area: parseInt(datos.area),
         Estado: datos.status,
@@ -178,7 +194,7 @@ async function guardarUsuario(e) {
     if (data.success) {
         mostrarToast({ mensaje: data.mensaje, tipo: "success" });
         cerrarFormulario();
-        await cargarUsuarios();// ⬅ Aquí se recargan los datos de la tabla
+        await cargarUsuarios();
     } else {
         mostrarToast({ mensaje: data.error, tipo: "danger" });
     }
@@ -202,7 +218,7 @@ async function eliminarUsuario() {
     }
 }
 
-//   botón PDF (por ahora placeholder)
+// Botón PDF (placeholder)
 function descargarPDF() {
     console.log("Función DESCARGAR PDF aún no implementada");
     mostrarToast({
@@ -212,15 +228,17 @@ function descargarPDF() {
 }
 </script>
 
-
 <ToastContainer />
 
-
-<div class="flex flex-col items-center w-full mt-16 transition-all duration-300"> 
+<div class="flex flex-col items-center w-full  transition-all duration-300"> 
     <!-- Barra de búsqueda + botones -->
     {#if !mostrarFormulario}
+    <div class="w-full flex justify-center mb-4">
+    
+  </div>
     <div class="w-full flex items-center my-4">
         <div class="flex items-center gap-2">
+            
             <!-- Campo de búsqueda -->
             <div class="relative w-64">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
@@ -245,7 +263,7 @@ function descargarPDF() {
                 <Plus class="w-5 h-5" />
             </button>
 
-            <!-- Botón Descargar PDF (placeholder por ahora) -->
+            <!-- Botón Descargar PDF -->
             <button
                 class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
                 style="background-color: #323a49; width: 35px; height: 35px;"
@@ -258,54 +276,22 @@ function descargarPDF() {
     </div>
     {/if}
 
-
-
-    <!-- Formulario expandible -->
+    <!-- Formulario -->
     {#if mostrarFormulario}
-   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-   <!-- svelte-ignore a11y_no_static_element_interactions -->
-   <section
-  class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6"
-  tabindex="0"
-  onkeydown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (accionFormulario === 'nuevo' || accionFormulario === 'editar') {
-        document.getElementById("form-usuario")?.requestSubmit();
-      }
-      if (accionFormulario === 'borrar') {
-        eliminarUsuario();
-      }
-      if (accionFormulario === 'ver') {
-        cerrarFormulario();
-      }
-    }
-    if (e.key === "Escape") {
-      cerrarFormulario();
-    }
-  }}
->
-<!-- HEADING FORMULARIO -->
+    <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
         <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
-
-           <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
-
-            <button
-                class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition"
-                style="background: transparent;"
-                aria-label="Cerrar"
-                onclick={cerrarFormulario}
-                >x</button>
-            </div>
+            <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
+            <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
+        </div>
 
         <div class="p-6 bg-[#212631]">
             <FormularioUsuario 
-            {usuario} 
-            accionModal={accionFormulario}
-            disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
-            mostrarUsername={true}   
-            ordenAgregar={accionFormulario === 'nuevo'} 
-            on:submit={guardarUsuario}
+                {usuario} 
+                accionModal={accionFormulario}
+                disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
+                mostrarUsername={true}   
+                ordenAgregar={accionFormulario === 'nuevo'} 
+                on:submit={guardarUsuario}
             />
             <div class="flex justify-end gap-2 mt-4">
                 {#if accionFormulario === 'nuevo' || accionFormulario === 'editar'}
@@ -324,7 +310,6 @@ function descargarPDF() {
     </section>
     {/if}
 
-
     <!-- Tabla -->
     {#if !mostrarFormulario}
     <div class="w-full">
@@ -338,45 +323,63 @@ function descargarPDF() {
                 </tr>
             </thead>
             <tbody>
-                {#if usuariosFiltrados.length === 0}
+                {#if usuariosPaginados.length === 0}
                     <tr>
                         <td colspan="4" class="text-center py-6 text-gray-400 italic">No se encontraron usuarios</td>
                     </tr>
                 {:else}
-                    {#each usuariosFiltrados as u}
+                    {#each usuariosPaginados as u}
                         <tr class="border-b border-surface-700">
                             <td class="px-4 py-2 flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-base" style="background-color: #4b4d56; color: #000000cc;">{u.name.charAt(0)}</div>
-                                <!--  NOMBRE Y APELLIDO  -->
                                 <div>
                                     <span>{u.name}</span><br />
                                     <small class="user-subinfo">{u.email}</small>
                                 </div>
                             </td>
-                            <!--  ROL  -->
                             <td class="px-4 py-2">
                                 <span>{u.tipo}</span><br />
                                 <small class="user-subinfo">{u.area}</small>
                             </td>
-                            <!--  ESTADO  -->
                             <td class="px-4 py-2">
                                 <span class={`px-4 py-1 rounded text-xs ${getStatusClasses(u.estado)}`}>{u.estado}</span>
                             </td>
-                            <!-- BOTON DE ACCIONES -->
                             <td class="px-4 py-2 flex gap-2">
-                                <button class="text-red-500 hover:scale-110" title="Eliminar Usuario" onclick={() => onClickBorrar(u)}><Trash2 class="w-4.3 h-5" /></button>
-                                <button class="text-blue-500 hover:scale-110" title="Editar Usuario" onclick={() => onClickEditar(u)}><Pencil class="w-4.3 h-5" /></button>
-                                <button class="text-green-500 hover:scale-110" title="Información del Usuario" onclick={() => onClickVer(u)}><Eye class="w-4.3  h-5" /></button>
-                            </td>
+    <button class="text-red-500 hover:scale-110" title="Eliminar Usuario" onclick={() => onClickBorrar(u)}>
+        <Trash2 class="w-4.3 h-5" />
+    </button>
+    <button class="text-blue-500 hover:scale-110" title="Editar Usuario" onclick={() => onClickEditar(u)}>
+        <Pencil class="w-4.3 h-5" />
+    </button>
+    <button class="text-green-500 hover:scale-110" title="Información del Usuario" onclick={() => onClickVer(u)}>
+        <Eye class="w-4.3  h-5" />
+    </button>
+</td>
                         </tr>
                     {/each}
                 {/if}
             </tbody>
         </table>
+
+        <!-- Paginación -->
+        <div class="flex justify-between items-center mt-4 text-white">
+            <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
+                onclick={prevPage}
+                disabled={currentPage === 1}>
+                ⬅ Anterior
+            </button>
+
+            <span>Página {currentPage} de {totalPages}</span>
+
+            <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
+                onclick={nextPage}
+                disabled={currentPage === totalPages}>
+                Siguiente ➡
+            </button>
+        </div>
     </div>
     {/if}
 </div>
-
 
 <style>
 input::placeholder { color: #b0b0b0; opacity: 1; }
@@ -390,10 +393,6 @@ input:focus { outline: none; box-shadow: none; border-color: inherit; }
 .rounded-lg { border-radius: 0.5rem;}
 .user-subinfo { font-style: italic; color: #777 !important; }
 .encabezado { padding: 7px 18px; text-align: left;  font-size: 0.95rem; letter-spacing: 1px; font-weight: 400;  background: transparent; }
-tbody tr:nth-child(odd) {
-  background-color: #2a2f3a; /* gris oscuro */
-}
-tbody tr:nth-child(even) {
-  background-color: #212631; /* un poco más claro */
-}
+tbody tr:nth-child(odd) { background-color: #2a2f3a; }
+tbody tr:nth-child(even) { background-color: #212631; }
 </style>

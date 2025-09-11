@@ -17,7 +17,7 @@ let verRepetir = false;
 const dispatch = createEventDispatcher();
 
 const defaultUsuario = {
-  nombre: '', apellido: '', username: '', email: '', clave: '', repetirClave: '',
+  nombre: '', apellido: '', username: '', email: '', clave: '', nuevaClave: '',
   tipo: '', area: '', status: 'Activo', hasta: "", telefono: '', domicilio: ''
 };
 
@@ -237,9 +237,9 @@ function manejarSubmit(e) {
     />
   </div>
 
-    <!-- svelte-ignore a11y_label_has_associated_control -->
-    <!-- svelte-ignore a11y_label_has_associated_control -->
+
   <div>
+    <!-- svelte-ignore a11y_label_has_associated_control -->
     <label>Contraseña:</label>
     <div class="relative">
       <input
