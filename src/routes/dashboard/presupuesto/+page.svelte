@@ -5,6 +5,7 @@ import ToastContainer from '$lib/components/ToastContainer.svelte';
 import IngresosModal from '$lib/components/IngresosModal.svelte';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
+import { IconName } from 'svelte-hero-icons';
 
 let anios = [];
 let filtroAnio = "todos";

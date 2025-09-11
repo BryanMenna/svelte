@@ -41,6 +41,7 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-svelte": "^0.539.0",
     "mysql2": "^3.14.3",
+    "svelte-hero-icons": "^5.2.0",
     "svelte-tel-input": "^3.6.0"
   }
 }
