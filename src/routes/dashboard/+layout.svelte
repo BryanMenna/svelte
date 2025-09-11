@@ -292,6 +292,12 @@ div.flex.pt-14.min-h-screen {
   overflow-x: hidden;
 }
 
+main {
+  overflow-x: auto; /* Permite scroll horizontal si el contenido se desborda */
+  -webkit-overflow-scrolling: touch; /* para suavizar scroll en iOS */
+  max-width: 100vw; /* para que no se salga de la pantalla */
+  box-sizing: border-box;
+}
 
 
 </style>
