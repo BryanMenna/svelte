@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "flatpickr": "^4.6.13",
     "flowbite-svelte": "^1.13.2",
     "jsonwebtoken": "^9.0.2",
