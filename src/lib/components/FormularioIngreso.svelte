@@ -7,7 +7,6 @@
 
   import { masked_cod } from '$lib/utils/format.js';
   import { mostrarToast } from '$lib/utils/mostrarToast.js';
-  import { IconName } from 'svelte-hero-icons';
 
   function getTipoIT(it) {
     const txt = (it || '').toLowerCase();

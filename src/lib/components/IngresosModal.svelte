@@ -1,7 +1,6 @@
 <script>
 // @ts-nocheck
 import FormularioIngreso from './FormularioIngreso.svelte';
-import { IconName } from 'svelte-hero-icons';
 export let ingresos = [];
 // svelte-ignore export_let_unused
 export let ingresosNumero = "";
