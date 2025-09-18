@@ -59,9 +59,9 @@ async function validarYGuardar(e) {
     }
   }
 
-  mostrarToast("✅ Operación realizada con éxito", "success");
-  onGuardar(ingreso);
+   onGuardar(ingreso);
 }
+
 
 function getColorsByModo(modo) {
   switch (modo) {

@@ -399,43 +399,43 @@ export function getPadre(partIN) {
                 </td>
                 <td class="px-4 py-2 text-center">
   <div class="flex gap-3">
-    <!-- Trash -->
-    <button
-      class="text-red-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
-      title="Eliminar"
-      disabled={i !== registrosPaginados.length - 1}
-      on:click={() => {
-        modo = "eliminar";
-        formData = {
-          ...r,
-          fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
-          fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
-        };
-        mostrarFormulario = true;
-        mostrarToast({ mensaje: `Preparando eliminación de ${r.numero}`, tipo: "danger" });
-      }}
-    >
-      <Trash2 class="w-4.3 h-5" />
-    </button>
+   <!-- Trash -->
+<button
+  class="text-red-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
+  title="Eliminar"
+  disabled={r !== registrosFiltrados[registrosFiltrados.length - 1]}
+  on:click={() => {
+    modo = "eliminar";
+    formData = {
+      ...r,
+      fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+      fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
+    };
+    mostrarFormulario = true;
+    mostrarToast({ mensaje: `Preparando eliminación de ${r.numero}`, tipo: "danger" });
+  }}
+>
+  <Trash2 class="w-4.3 h-5" />
+</button>
 
-    <!-- Pencil -->
-    <button
-      class="text-blue-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
-      title="Editar"
-      disabled={i !== registrosPaginados.length - 1}
-      on:click={() => {
-        modo = "editar";
-        formData = {
-          ...r,
-          fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
-          fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
-        };
-        mostrarFormulario = true;
-        mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
-      }}
-    >
-      <Pencil class="w-4.3 h-5" />
-    </button>
+<!-- Pencil -->
+<button
+  class="text-blue-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
+  title="Editar"
+  disabled={r !== registrosFiltrados[registrosFiltrados.length - 1]}
+  on:click={() => {
+    modo = "editar";
+    formData = {
+      ...r,
+      fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+      fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
+    };
+    mostrarFormulario = true;
+    mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
+  }}
+>
+  <Pencil class="w-4.3 h-5" />
+</button>
 
     <!-- Eye -->
     <button

@@ -56,7 +56,7 @@ async function validarYGuardar(e) {
     }
   }
 
-  mostrarToast("✅ Operación realizada con éxito", "success");
+ 
   dispatch("guardar", egreso);
 }
 
