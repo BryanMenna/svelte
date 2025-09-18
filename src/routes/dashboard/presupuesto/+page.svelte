@@ -2,9 +2,10 @@
 // @ts-nocheck
 import { onMount } from 'svelte';
 import ToastContainer from '$lib/components/ToastContainer.svelte';
-import IngresosModal from '$lib/components/IngresosModal.svelte';
+import IngresosModal from '../ingresos/+page.svelte';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
+import PresupuestoForm from '../../../lib/components/PresupuestoForm.svelte';
 
 let anios = [];
 let filtroAnio = "todos";
@@ -13,7 +14,7 @@ let itemsPerPage = 5;
 let filtro = "";
 let currentPage = 1;
 
-let modo = "alta"; // "alta" | "editar" | "ver"
+let modo = "alta"; // "alta" | "editar" | "ver" | "eliminar"
 let mostrarFormulario = false;
 let formData = {
   id_presu: null,
@@ -35,37 +36,6 @@ let ingresosNumero = "";
 let ingresosIdPresu = "";
 let ingresosTitulo = "";
 let tituloActual = "Presupuesto";
-
-// --- Nueva: Confirmación de eliminación ---
-let mostrarConfirmacion = false;
-let registroAEliminar = null;
-
-// Funciones Modal
-async function abrirIngresos(r) {
-  ingresosIdPresu = r.id_presu;
-  ingresosNumero = r.numero;
-  let fechaPartes = r.fecha_vig.split('/');
-  let mes = fechaPartes.length === 3 ? fechaPartes[1] : '??';
-  let anio = fechaPartes.length === 3 ? fechaPartes[5] : r.anio;
-  ingresosTitulo = `Ingresos - Presupuesto ${mes}/${anio}`;
-  tituloActual = ingresosTitulo;
-  mostrarIngresos = true;
-
-  try {
-    const res = await fetch(`/api/ingresos/${ingresosIdPresu}?numero=${ingresosNumero}`);
-    if (!res.ok) throw new Error("Error al cargar ingresos");
-    ingresos = await res.json();
-  } catch (e) {
-    mostrarToast({ mensaje: 'Error cargando ingresos', tipo: 'danger' });
-    ingresos = [];
-  }
-}
-
-function cerrarIngresos() {
-  mostrarIngresos = false;
-  ingresos = [];
-  tituloActual = "Presupuesto";
-}
 
 // Filtrado y paginación
 $: registrosFiltrados = registros.filter(r => {
@@ -96,15 +66,16 @@ async function cargarRegistros() {
   }
 }
 
-// Filtrado
 function cambiarAnio(e) {
   filtroAnio = e.target.value;
   currentPage = Math.max(Math.ceil(registrosFiltrados.length / itemsPerPage), 1);
 }
+
 function onFiltroInput(e) {
   filtro = e.target.value.toLowerCase();
   currentPage = Math.max(Math.ceil(registrosFiltrados.length / itemsPerPage), 1);
 }
+
 function nextPage() { if (currentPage < totalPages) currentPage++; }
 function prevPage() { if (currentPage > 1) currentPage--; }
 
@@ -145,6 +116,7 @@ function convertirDDMMYYYYaISO(str) {
 function prepararAlta() {
   const anio = filtroAnio !== "todos" ? parseInt(filtroAnio) : new Date().getFullYear();
   anioSeleccionado = anio;
+
   const fechaClave = `01/01/${anio}`;
   const existe = registros.some(r => r.fecha_vig === fechaClave || r.fecha_vig === `${anio}-01-01` || r.fecha_vig === `01/01/${anio}`);
   if (!existe) {
@@ -183,7 +155,6 @@ function agregarPresupuesto() {
 }
 
 function editarRegistro(r) {
-  if (r.tipo === "Anual" || r.tipo === "Reconducido") return;
   modo = "editar";
   formData = {
     ...r,
@@ -196,7 +167,6 @@ function editarRegistro(r) {
 }
 
 function verRegistro(r) {
-  if (r.tipo === "Anual" || r.tipo === "Reconducido") return;
   modo = "ver";
   formData = {
     ...r,
@@ -208,40 +178,52 @@ function verRegistro(r) {
   mostrarToast({ mensaje: `Viendo presupuesto ${r.numero}`, tipo: "success" });
 }
 
-// NUEVO: Pide confirmación antes de eliminar (no usa alert)
-function pedirConfirmacionEliminar(r) {
-  registroAEliminar = r;
-  mostrarConfirmacion = true;
+function abrirIngresos(r) {
+  ingresosIdPresu = r.id_presu;
+  ingresosNumero = r.numero;
+  let fechaPartes = r.fecha_vig.split('/');
+  let mes = fechaPartes.length === 3 ? fechaPartes[1] : '??';
+  let anio = fechaPartes.length === 3 ? fechaPartes[2] : r.anio;
+  ingresosTitulo = `Ingresos - Ordenanza Nº ${r.numero} - ${mes}/${anio}`;
+  tituloActual = ingresosTitulo;
+  mostrarIngresos = true;
+
+  
+
+  fetch(`/api/ingresos/${ingresosIdPresu}?numero=${ingresosNumero}`)
+    .then(res => res.ok ? res.json() : Promise.reject())
+    .then(data => ingresos = data)
+    .catch(() => {
+      mostrarToast({ mensaje: 'Error cargando ingresos', tipo: 'danger' });
+      ingresos = [];
+    });
 }
 
-// NUEVO: Ejecuta la eliminación
-async function confirmarEliminacion() {
-  mostrarConfirmacion = false;
-  if (!registroAEliminar) return;
-  const res = await fetch('/api/presupuesto', {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id_presu: registroAEliminar.id_presu })
-  });
-  if (!res.ok) {
-    mostrarToast({ mensaje: "Error al eliminar", tipo: "danger" });
-    return;
-  }
-  mostrarToast({ mensaje: `Presupuesto eliminado`, tipo: 'danger' });
-  registroAEliminar = null;
-  await cargarRegistros();
+function cerrarIngresos() {
+  mostrarIngresos = false;
+  ingresos = [];
+  tituloActual = "Presupuesto";
 }
 
-// NUEVO: Cancela la eliminación
-function cancelarEliminacion() {
-  mostrarConfirmacion = false;
-  registroAEliminar = null;
-  mostrarToast({ mensaje: "Eliminación cancelada", tipo: "info" });
-}
-
-// Guardar presupuesto
+// Guardar presupuesto (alta, editar, eliminar)
 async function guardarPresupuesto(e) {
   e.preventDefault();
+
+  if (modo === "eliminar") {
+    const res = await fetch("/api/presupuesto", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_presu: formData.id_presu })
+    });
+    if (!res.ok) {
+      mostrarToast({ mensaje: "Error al eliminar", tipo: "danger" });
+      return;
+    }
+    mostrarToast({ mensaje: `Presupuesto eliminado`, tipo: "danger" });
+    mostrarFormulario = false;
+    await cargarRegistros();
+    return;
+  }
 
   if (modo === "alta") {
     const res = await fetch("/api/presupuesto", {
@@ -281,6 +263,28 @@ onMount(() => {
   cargarRegistros();
 });
 
+// Máscara de códigos de partida
+export let picIG = "9.9.99.99.99"; // ejemplo
+function masked_cod(partIN) {
+  let posPart = 0;
+  let resultado = "";
+  for (let i = 0; i < picIG.length && posPart < partIN.length; i++) {
+    if (picIG[i] === ".") resultado += ".";
+    else {
+      resultado += partIN[posPart];
+      posPart++;
+    }
+  }
+  return resultado;
+}
+
+export function getPadre(partIN) {
+  const conMascara = masked_cod(partIN);
+  if (!conMascara.includes(".")) return "";
+  const partes = conMascara.split(".");
+  partes.pop(); 
+  return partes.join(".");
+}
 </script>
 
 <ToastContainer />
@@ -290,63 +294,34 @@ onMount(() => {
     {mostrarIngresos}
     {ingresos}
     {ingresosNumero}
+    ingresosIdPresu={ingresosIdPresu}
     ingresosTitulo={ingresosTitulo}
     {cerrarIngresos}
   />
 {:else}
+  <!-- Título -->
+  <div class="w-full flex items-center justify-center mt-8 mb-8">
+    <h1 class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg" style="background: #2a2f3a">
+      {tituloActual}
+    </h1>
+  </div>
+
+  <!-- Formulario -->
   {#if mostrarFormulario}
-  <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
-    <div class="px-5 py-2 bg-[#6416a1] text-white font-normal text-lg flex items-center justify-between">
-      <span style="text-transform: uppercase;">Nuevo Presupuesto</span>
-      <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition"
-        style="background: transparent;" aria-label="Cerrar"
-        on:click={cerrarFormulario}>×</button>
-    </div>
-    <div class="p-6 bg-[#212631]">
-      <div class="presu-card-section">
-        <div class="presu-section-title">CREDENCIALES DEL PRESUPUESTO</div>
-        <form on:submit={guardarPresupuesto} class="presu-form-grid" id="form-presupuesto">
-          <div class="presu-form-col">
-            <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="presu-label">Tipo:</label>
-            <select bind:value={formData.tipo} disabled={modo !== "alta"} class="presu-input presu-select">
-              {#each opcionesTipo as opt}
-                <option>{opt}</option>
-              {/each}
-            </select>
-          </div>
-          <div class="presu-form-col">
-            <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="presu-label">Número:</label>
-            <input type="text" bind:value={formData.numero} class="presu-input" disabled={modo==="ver"} />
-          </div>
-          <div class="presu-form-col">
-            <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="presu-label">Fecha Vigencia:</label>
-            <input type="date" bind:value={formData.fecha_vig} class="presu-input"
-              min={minVigencia} max={maxFecha}
-              disabled={modo === "ver" || formData.tipo === "Anual" || formData.tipo === "Reconducido"} />
-          </div>
-          <div class="presu-form-col">
-            <!-- svelte-ignore a11y_label_has_associated_control -->
-            <label class="presu-label">Fecha Promulgación:</label>
-            <input type="date" bind:value={formData.fecha_pro} class="presu-input"
-              min={minPromulgacion} max={maxFecha}
-              disabled={modo === "ver" || formData.tipo === "Anual" || formData.tipo === "Reconducido"} />
-          </div>
-          {#if modo !== "ver"}
-          <div class="presu-btn-actions">
-            <button type="submit" class="presu-submit" tabindex="0">
-              Guardar
-            </button>
-            <button type="button" class="presu-cancel" on:click={cerrarFormulario} tabindex="0">Cerrar</button>
-          </div>
-          {/if}
-        </form>
-      </div>
-    </div>
-  </section>
+    <PresupuestoForm
+      {modo}
+      {formData}
+      {opcionesTipo}
+      {minVigencia}
+      {minPromulgacion}
+      {maxFecha}
+      {masked_cod}
+      {getPadre}
+      {guardarPresupuesto}
+      {cerrarFormulario}
+    />
   {:else}
+    <!-- Tabla y filtros -->
     <div class="w-full flex items-center my-4 justify-between">
       <div class="flex items-center gap-3">
         <div class="relative w-64">
@@ -359,8 +334,7 @@ onMount(() => {
             on:input={onFiltroInput}
           />
         </div>
-        <button
-          class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+        <button class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
           style="background-color: #21A9FD; width: 32px; height: 32px;"
           title="Nuevo presupuesto"
           on:click={agregarPresupuesto}
@@ -369,7 +343,8 @@ onMount(() => {
         </button>
         <button class="p-2 rounded-full text-white hover:scale-110 transition"
           style="background-color: #323a49; width: 35px; height: 35px;"
-          title="Descargar PDF" on:click={() => mostrarToast({mensaje:"PDF pendiente", tipo:"info"})}>
+          title="Descargar PDF"
+          on:click={() => mostrarToast({mensaje:"PDF pendiente", tipo:"info"})}>
           <FileText class="w-5 h-5" />
         </button>
       </div>
@@ -385,7 +360,8 @@ onMount(() => {
         </div>
       </div>
     </div>
-    <div class="w-full">
+
+    <div class="w-full overflow-x-auto rounded-lg shadow-lg">
       <table class="w-full text-white rounded overflow-hidden" style="background-color: #212631;">
         <thead style="background-color: #323a49;">
           <tr>
@@ -399,7 +375,7 @@ onMount(() => {
         <tbody>
           {#if registrosPaginados.length === 0}
             <tr>
-              <td colspan="5" class="text-center py-6 text-gray-400 italic">No se encontraron registros</td>
+              <td colspan="5" class="text-center py-4 text-gray-400">No hay registros para mostrar</td>
             </tr>
           {:else}
             {#each registrosPaginados as r, i (`${r.id_presu}-${i}`)}
@@ -408,64 +384,87 @@ onMount(() => {
                 <td class="px-4 py-2">
                   <div class="font-bold">{r.tipo}</div>
                   <div class="ordenanza">{disp_legal(r.numero)}</div>
+                  <small class="user-subinfo">{masked_cod(r.numero)} y su padre es: {getPadre(r.numero)}</small>
                 </td>
+                <td class="px-4 py-2">Vigencia: {r.fecha_vig}<br /><span class="promulgacion">Promulgación: {r.fecha_pro}</span></td>
                 <td class="px-4 py-2">
-                  Vigencia: {r.fecha_vig}<br />
-                  <span class="promulgacion">Promulgación: {r.fecha_pro}</span>
+                 <span class="px-3 py-1 rounded text-xs font-semibold"
+  style:background-color={
+    r.tipo.toLowerCase() === 'anual' ? '#00c950' :
+    r.tipo.toLowerCase() === 'compensación' ? '#21A9FD' :
+    r.tipo.toLowerCase() === 'rectificación' ? '#fb2c36' : '#666'
+  }>
+  {r.tipo.toUpperCase()}
+</span>
                 </td>
-                <td class="px-4 py-2">
-                  <span class="px-3 py-1 rounded"
-                    style:background-color={
-                      r.tipo.toLowerCase() === 'anual' ? '#00c950' :
-                      r.tipo.toLowerCase() === 'compensación' ? '#21A9FD' :
-                      r.tipo.toLowerCase() === 'rectificación' ? '#fb2c36' : '#666'
-                    }>
-                    {r.tipo.toUpperCase()}
-                  </span>
-                </td>
-              <td>
-  <button
-    class="text-red-500 hover:scale-110"
-    title="Eliminar"
-    on:click={() => { pedirConfirmacionEliminar(r); mostrarToast({ mensaje: "Eliminación pendiente de presupuesto", tipo: "danger" }); }}
-    disabled={!(currentPage === totalPages && i === registrosPaginados.length - 1)}
-  >
-    <Trash2 class="w-4.3 h-5" />
-  </button>
+                <td class="px-4 py-2 text-center">
+  <div class="flex gap-3">
+    <!-- Trash -->
+    <button
+      class="text-red-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
+      title="Eliminar"
+      disabled={i !== registrosPaginados.length - 1}
+      on:click={() => {
+        modo = "eliminar";
+        formData = {
+          ...r,
+          fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+          fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
+        };
+        mostrarFormulario = true;
+        mostrarToast({ mensaje: `Preparando eliminación de ${r.numero}`, tipo: "danger" });
+      }}
+    >
+      <Trash2 class="w-4.3 h-5" />
+    </button>
 
-  <button
-    class="text-blue-500 hover:scale-110"
-    title="Editar"
-    on:click={() => { editarRegistro(r); mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" }); }}
-    disabled={!(currentPage === totalPages && i === registrosPaginados.length - 1)}
-  >
-    <Pencil class="w-4.3 h-5" />
-  </button>
+    <!-- Pencil -->
+    <button
+      class="text-blue-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
+      title="Editar"
+      disabled={i !== registrosPaginados.length - 1}
+      on:click={() => {
+        modo = "editar";
+        formData = {
+          ...r,
+          fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+          fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
+        };
+        mostrarFormulario = true;
+        mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
+      }}
+    >
+      <Pencil class="w-4.3 h-5" />
+    </button>
 
-  <button
-    class="text-green-500 hover:scale-110"
-    title="Ver Ingresos"
-    on:click={() => { abrirIngresos(r); mostrarToast({ mensaje: `Abriendo ingresos de presupuesto ${r.numero}`, tipo: "success" }); }}
-  >
-    <Eye class="w-4.3 h-5" />
-  </button>
+    <!-- Eye -->
+    <button
+      class="text-green-500 hover:scale-110"
+      title="Ingresos"
+      on:click={() => {
+        abrirIngresos(r);
+        mostrarToast({ mensaje: `Abriendo ingresos de ${r.numero}`, tipo: "success" });
+      }}
+    >
+      <Eye class="w-4.3 h-5" />
+    </button>
+  </div>
 </td>
-
               </tr>
             {/each}
           {/if}
         </tbody>
       </table>
-      <div class="flex justify-between items-center mt-4 text-white">
-        <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
-          on:click={prevPage} disabled={currentPage === 1}>⬅ Anterior</button>
-        <span>Página {currentPage} de {totalPages}</span>
-        <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
-          on:click={nextPage} disabled={currentPage === totalPages}>Siguiente ➡</button>
-      </div>
+    </div>
+
+    <div class="flex justify-between items-center mt-4 text-white">
+      <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50" on:click={prevPage} disabled={currentPage === 1}>⬅ Anterior</button>
+      <span>Página {currentPage} de {totalPages}</span>
+      <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50" on:click={nextPage} disabled={currentPage === totalPages}>Siguiente ➡</button>
     </div>
   {/if}
 {/if}
+
 
 <style>
 /* (Igual que antes, sin cambios en el CSS) */
@@ -477,18 +476,6 @@ tbody td { padding: 8px 12px;  }
 .promulgacion { font-size: 0.85rem; color: #bbb; }
 select { background-color: #323a49; color: white;  border-radius: 5px; }
 .select-container { border: 1px solid #323a49; border-radius: 5px; overflow: hidden; }
-.presu-card-section { background: #2a2f3a; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.22); padding: 32px 28px 26px; margin-bottom: 0; width: 100%; display: block; }
-.presu-section-title { color: #e07676; font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; letter-spacing: .7px; text-transform: uppercase; }
-.presu-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 28px; margin-bottom: 16px; width: 100%; }
-@media (max-width: 900px) { .presu-form-grid { grid-template-columns: 1fr; } }
-.presu-form-col { display: flex; flex-direction: column; width: 100%; }
-.presu-label { color: #fff; font-weight: 500; margin-bottom: 7px; font-size: 1.09rem; letter-spacing: .2px; }
-.presu-input, .presu-select { background-color: #2b3242; color: #fff; border-radius: 6px; border: 1px solid #777; padding: 10px 16px; font-size: 1rem; width: 100%; outline: none; transition: border-color 0.2s; min-height: 44px; }
-.presu-input:focus, .presu-select:focus { border-color: #3585fd; }
-.presu-btn-actions { grid-column: span 2; display: flex; justify-content: flex-end; gap: 18px; margin-top: 8px; width: 100%; }
-.presu-submit { background: #6416a1; color: #fff; font-size: 1.04rem; font-weight: 600; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; transition: background 0.16s; box-shadow: 0 0 0 1.5px #5e1597; }
-.presu-submit:hover { background: #791ed0; }
-.presu-cancel { background: #212631; color: #6416a1; font-size: 1rem; font-weight: 500; border-radius: 5px; border: 1.5px solid #791ed0; padding: 10px 20px; cursor: pointer; box-shadow: 0 0 0 1.5px #212631; opacity: 0.54; transition: background 0.18s, color 0.18s; }
-.presu-cancel:disabled { color: #791ed0; opacity: 0.35; cursor: not-allowed; background: #212631; border: 1.5px solid #791ed0; }
-.presu-cancel:hover:not(:disabled) { background: #791ed0; color: #fff; opacity: 1; }
+
+
 </style>

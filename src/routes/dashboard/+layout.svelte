@@ -14,6 +14,9 @@ let sidebarVisible = true;
 let abiertos = {};
 let toastMsg = '';
 let mostrarToast = false;
+let breadcrumbCustom = []; // Array de strings
+
+
 
 
 // Breadcrumb variables
@@ -106,6 +109,9 @@ function capitalizar(palabra) {
   return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
 }
 
+function irARuta(ruta) {
+  navegar(ruta);
+}
 
 </script>
 
@@ -139,14 +145,15 @@ function capitalizar(palabra) {
     <span class="mx-2">/</span>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-   <span
+  <span
   class="cursor-pointer hover:underline"
   class:text-blue-400={i === breadcrumbParts.length - 1}
   style="color: #fff9;"
-  onclick={() => irARuta(breadcrumbParts.slice(0, i + 1).join("/"))}
+  onclick={() => navegar(breadcrumbParts.slice(0, i + 1).join("/"))}
 >
   {capitalizar(part)}
 </span>
+
 
   {/each}
 </nav>
@@ -243,13 +250,7 @@ function capitalizar(palabra) {
     class:ml-0={!sidebarVisible}
     style="background-color: #1d222b;"
   >
-  <!-- Título principal arriba de todo -->
-<div class="flex flex-col items-center w-full mt-16">
-  <h2 class="px-8 py-4 rounded-lg text-2xl font-semibold text-white" style="background: #323a49;">
-  {tituloActual}
-</h2>
 
-</div>
    
     <slot />
   </main>

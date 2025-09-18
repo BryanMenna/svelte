@@ -12,6 +12,9 @@ let filtro = "";
 let mostrarFormulario = false;
 let accionFormulario = "";
 let usuario = {};
+let tituloUsuario = "Usuarios";
+let mostrarTituloUsuario = true;
+
 
 const usuarioVacio = { 
     id: null, 
@@ -85,6 +88,7 @@ function getStatusClasses(status) {
 const abrirFormularioNuevo = () => {
     usuario = { ...usuarioVacio };
     accionFormulario = "nuevo";
+    mostrarTituloUsuario = false;
     mostrarFormulario = true;
 };
 
@@ -92,6 +96,7 @@ function onClickEditar(u) {
     prepararUsuario(u);
     accionFormulario = 'editar';
     mostrarFormulario = true;
+    mostrarTituloUsuario = false;
     mostrarToast({ mensaje: `Editando usuario: ${u.name}`, tipo: "primary" });
 }
 
@@ -99,6 +104,7 @@ function onClickVer(u) {
     prepararUsuario(u);
     accionFormulario = 'ver';
     mostrarFormulario = true;
+    mostrarTituloUsuario = false;
     mostrarToast({ mensaje: `Viendo usuario: ${u.name}`, tipo: "success" });
 }
 
@@ -106,6 +112,7 @@ function onClickBorrar(u) {
     prepararUsuario(u);
     accionFormulario = 'borrar';
     mostrarFormulario = true;
+    mostrarTituloUsuario = false;
     mostrarToast({ mensaje: `Eliminando usuario: ${u.name}`, tipo: "danger" });
 }
 
@@ -130,8 +137,11 @@ function prepararUsuario(u) {
 }
 
 // Cerrar formulario
-const cerrarFormulario = () => mostrarFormulario = false;
-
+const cerrarFormulario = () => {
+    mostrarFormulario = false;
+    tituloUsuario = "Usuarios"; // título general cuando no hay formulario
+    mostrarTituloUsuario = true; // mostrar título al estar formulario cerrado
+};
 // Colores por acción
 function getColorClasses(acc) {
     if (acc === 'borrar') 
@@ -231,6 +241,16 @@ function descargarPDF() {
 <ToastContainer />
 
 <div class="flex flex-col items-center w-full  transition-all duration-300"> 
+
+     <!-- Título dinámico -->
+   {#if mostrarTituloUsuario}
+<div class="w-full flex items-center justify-center mt-8 mb-8">
+    <h1 class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg" style="background: #2a2f3a">
+        {tituloUsuario}
+    </h1>
+</div>
+{/if}
+    
     <!-- Barra de búsqueda + botones -->
     {#if !mostrarFormulario}
     <div class="w-full flex justify-center mb-4">
@@ -278,7 +298,7 @@ function descargarPDF() {
 
     <!-- Formulario -->
     {#if mostrarFormulario}
-    <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
+    <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
         <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
             <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
             <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
@@ -313,6 +333,7 @@ function descargarPDF() {
     <!-- Tabla -->
     {#if !mostrarFormulario}
     <div class="w-full">
+        <div class="overflow-x-auto rounded-lg shadow-lg">
         <table class="w-full text-white rounded overflow-hidden" style="background-color: #212631; table-layout: auto;">
             <thead style="background-color: #323a49;">
                 <tr>
@@ -360,7 +381,7 @@ function descargarPDF() {
                 {/if}
             </tbody>
         </table>
-
+</div>
         <!-- Paginación -->
         <div class="flex justify-between items-center mt-4 text-white">
             <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"

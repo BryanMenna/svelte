@@ -1,82 +1,98 @@
 <script>
 // @ts-nocheck
-  export let modo = 'alta'; // 'alta', 'modificar', 'baja', 'consulta'
-  export let ingreso = { Codigo: '', Detalle: '', Presu: '', IT: '' };
-  export let onGuardar = () => {};
-  export let onCancelar = () => {};
+export let modo = 'alta'; // 'alta', 'modificar', 'baja', 'consulta'
+export let ingreso = { Codigo: '', Detalle: '', Presu: '', IT: '' };
+export let onGuardar = () => {};
+export let onCancelar = () => {};
 
-  import { masked_cod } from '$lib/utils/format.js';
-  import { mostrarToast } from '$lib/utils/mostrarToast.js';
+import { masked_cod } from '$lib/utils/format.js';
+import { mostrarToast } from '$lib/utils/mostrarToast.js';
 
-  function getTipoIT(it) {
-    const txt = (it || '').toLowerCase();
-    if (txt === 'título' || txt === 'titulo') return 'Título';
-    return 'Imputable';
-  }
+// Variables reactivas para hover
+let hoverGuardar = false;
+let hoverCancelar = false;
 
-  // 🚨 Simulación de función para verificar existencia de código (backend real debería validar)
-  async function codigoExiste(codigo) {
-    // Ejemplo de fetch real:
-    // const res = await fetch(`/api/ingresos/check/${codigo}`);
-    // const data = await res.json();
-    // return data.exists;
-    return false; // simulo que no existe
-  }
 
-  // 🚨 Simulación de función getPadre (en backend real deberías validar contra BD)
-  function getPadre(codigo) {
-    if (!codigo || codigo.length < 2) return null;
-    return codigo.slice(0, codigo.length - 1);
-  }
+function getTipoIT(it) {
+  const txt = (it || '').toLowerCase();
+  if (txt === 'título' || txt === 'titulo') return 'Título';
+  return 'Imputable';
+}
 
-  async function validarYGuardar(e) {
-    e.preventDefault();
+// Simulación de verificación de código
+async function codigoExiste(codigo) {
+  return false; // simula que no existe
+}
 
-    // 🚨 VALIDACIONES
-    if (modo === 'alta') {
-      if (await codigoExiste(ingreso.Codigo)) {
-        mostrarToast("❌ El código ya existe.", "error");
-        return;
-      }
-      const padre = getPadre(ingreso.Codigo);
-      if (!padre) {
-        mostrarToast("❌ El código debe tener un padre válido.", "error");
-        return;
-      }
+// Simulación de función getPadre
+function getPadre(codigo) {
+  if (!codigo || codigo.length < 2) return null;
+  return codigo.slice(0, codigo.length - 1);
+}
+
+async function validarYGuardar(e) {
+  e.preventDefault();
+
+  if (modo === 'alta') {
+    if (await codigoExiste(ingreso.Codigo)) {
+      mostrarToast("❌ El código ya existe.", "error");
+      return;
     }
-
-    if (modo === 'baja') {
-      if (ingreso.IT?.toLowerCase() === "título" || ingreso.IT?.toLowerCase() === "titulo") {
-        mostrarToast("❌ No se puede eliminar una cuenta Título.", "error");
-        return;
-      }
+    const padre = getPadre(ingreso.Codigo);
+    if (!padre) {
+      mostrarToast("❌ El código debe tener un padre válido.", "error");
+      return;
     }
-
-    if (['alta','modificar','presu'].includes(modo)) {
-      if (parseFloat(ingreso.Presu) < 0) {
-        mostrarToast("❌ El importe debe ser mayor o igual a cero.", "error");
-        return;
-      }
-    }
-
-    // ✅ Si todo está OK
-    mostrarToast("✅ Operación realizada con éxito", "success");
-    onGuardar(ingreso);
   }
+
+  if (modo === 'baja') {
+    if (ingreso.IT?.toLowerCase() === "título" || ingreso.IT?.toLowerCase() === "titulo") {
+      mostrarToast("❌ No se puede eliminar una cuenta Título.", "error");
+      return;
+    }
+  }
+
+  if (['alta','modificar','presu'].includes(modo)) {
+    if (parseFloat(ingreso.Presu) < 0) {
+      mostrarToast("❌ El importe debe ser mayor o igual a cero.", "error");
+      return;
+    }
+  }
+
+  mostrarToast("✅ Operación realizada con éxito", "success");
+  onGuardar(ingreso);
+}
+
+function getColorsByModo(modo) {
+  switch (modo) {
+    case 'alta': return { base: '#2e8b57', hover: '#256d45' }; // Verde
+    case 'modificar': return { base: '#1e90ff', hover: '#187bcd' }; // Azul
+    case 'baja': return { base: '#c53030', hover: '#9b1c1c' }; // Rojo
+    case 'consulta': return { base: '#00c950', hover: '#565e64' }; // Gris
+    default: return { base: '#fdc700', hover: '#d4a700' }; // Amarillo
+  }
+}
 </script>
 
 <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 max-w-2xl mx-auto">
   <!-- Encabezado -->
-  <div class="px-5 py-2 bg-[#fdc700] text-white font-normal text-lg flex items-center justify-between">
+  <div class="px-5 py-2 text-white font-normal text-lg flex items-center justify-between"
+       style="background: {getColorsByModo(modo).base}">
     <span style="text-transform: uppercase;">
-      {modo === 'alta' ? 'Nuevo Ingreso' : 'Ingreso'}
+      {modo === 'alta' 
+        ? 'Nuevo Ingreso' 
+        : modo === 'modificar' 
+          ? 'Editar Ingreso' 
+          : modo === 'baja' 
+            ? 'Eliminar Ingreso' 
+            : ' Ingreso'}
     </span>
     <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" 
       style="background: transparent;" 
       aria-label="Cerrar" 
       on:click={onCancelar}>×</button>
   </div>
-  
+
   <!-- Card/formulario interno -->
   <div class="p-6 bg-[#2a2f3a]">
     <div class="ingreso-card-section">
@@ -154,15 +170,45 @@
 
         <!-- Botonera -->
         <div class="ingreso-btn-actions">
-          <button type="submit" class="ingreso-submit" tabindex="0">
-            {modo === 'alta' ? 'Guardar' 
-              : modo === 'modificar' ? 'Modificar' 
-              : modo === 'baja' ? 'Eliminar' 
-              : 'Cerrar'}
-          </button>
-          <button type="button" class="ingreso-cancel" on:click={onCancelar} tabindex="0">
-            Cancelar
-          </button>
+          <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+          <button 
+  type="submit"
+  class="px-4 py-2 rounded text-white transition font-medium"
+  style="background: {hoverGuardar ? getColorsByModo(modo).hover : getColorsByModo(modo).base};"
+  on:mouseover={() => hoverGuardar = true}
+  on:mouseout={() => hoverGuardar = false}>
+  {modo === 'consulta' ? 'Cerrar' : modo === 'baja' ? 'Eliminar' : 'Guardar'}
+</button>
+          
+
+          <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+         <!-- Botón Cancelar -->
+{#if modo !== 'consulta'}
+  <!-- Botón Cancelar -->
+  <button
+    type="button"
+    class="px-4 py-2 rounded font-medium transition-colors ml-2"
+    style="
+      background: transparent;
+      color: {getColorsByModo(modo).base};
+      border: 1px solid {getColorsByModo(modo).base};
+    "
+    on:mouseover={(e) => {
+      e.currentTarget.style.background = getColorsByModo(modo).base;
+      e.currentTarget.style.color = '#fff';
+    }}
+    on:mouseout={(e) => {
+      e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.color = getColorsByModo(modo).base;
+    }}
+    on:click={onCancelar}
+  >
+    Cancelar
+  </button>
+{/if}
+
+
+
         </div>
       </form>
     </div>
@@ -231,38 +277,5 @@
   gap: 18px;
   margin-top: 8px;
   width: 100%;
-}
-.ingreso-submit {
-  background: #fdc700;
-  color: #fff;
-  font-size: 1.04rem;
-  font-weight: 600;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  border: none;
-  transition: background 0.16s;
-  box-shadow: 0 0 0 1.5px #fdc700;
-}
-.ingreso-submit:hover {
-  background: #c2a300;
-}
-.ingreso-cancel {
-  background: #212631;
-  color: #fdc700;
-  font-size: 1rem;
-  font-weight: 500;
-  border-radius: 5px;
-  border: 1.5px solid #fdc700;
-  padding: 10px 20px;
-  cursor: pointer;
-  box-shadow: 0 0 0 1.5px #212631;
-  opacity: 0.54;
-  transition: background 0.18s, color 0.18s;
-}
-.ingreso-cancel:hover:not(:disabled) {
-  background: #c2a300;
-  color: #fff;
-  opacity: 1;
 }
 </style>
