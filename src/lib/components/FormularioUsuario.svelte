@@ -263,19 +263,19 @@ function manejarSubmit(e) {
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label>Nueva contraseña:</label>
     <div class="relative">
-      <input
-        type={verRepetir ? "text" : "password"}
-        title="Nueva Contraseña"
-        class="input w-full {errores.repetirClave ? 'input-error' : ''} pr-10"
-        bind:value={usuarioLocal.repetirClave}
-        {disabled}
-        placeholder="Nueva contraseña"/>
-      <button type="button" tabindex="-1"
-        class="absolute right-3 top-1/2 -translate-y-1/2"
-        on:click={() => verRepetir = !verRepetir}
-        style="background: none; border: none; padding: 0; cursor: pointer; color: #6c6c74;">
-        {#if verRepetir}<EyeOff class="w-5 h-5" />{:else}<Eye class="w-5 h-5" />{/if}
-      </button>
+       <input
+    type={verRepetir ? "text" : "password"}
+    title="Nueva Contraseña"
+    class="input w-full {errores.nuevaClave ? 'input-error' : ''} pr-10"
+    bind:value={usuarioLocal.nuevaClave}
+    {disabled}
+    placeholder="Nueva contraseña"/>
+  <button type="button" tabindex="-1"
+    class="absolute right-3 top-1/2 -translate-y-1/2"
+    on:click={() => verRepetir = !verRepetir}
+    style="background: none; border: none; padding: 0; cursor: pointer; color: #6c6c74;">
+    {#if verRepetir}<EyeOff class="w-5 h-5" />{:else}<Eye class="w-5 h-5" />{/if}
+  </button>
     </div>
   </div>
 

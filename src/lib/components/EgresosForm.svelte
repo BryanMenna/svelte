@@ -71,14 +71,14 @@ function getColorsByModo(modo) {
 }
 </script>
 
-<section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 max-w-2xl mx-auto">
+<section  class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mx-auto">
   <!-- Encabezado -->
   <div class="px-5 py-2 text-white font-normal text-lg flex items-center justify-between"
        style="background: {getColorsByModo(modo).base}">
     <span style="text-transform: uppercase;">
-      {modo === 'alta' ? 'Nuevo Egreso' 
-       : modo === 'modificar' ? 'Editar Egreso' 
-       : modo === 'baja' ? 'Eliminar Egreso' 
+      {modo === 'alta' ? 'Nueva Partida De Egreso' 
+       : modo === 'modificar' ? 'Editar Partida De Egreso' 
+       : modo === 'baja' ? 'Eliminar Partida De Egreso' 
        : ' Egreso'}
     </span>
     <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" 
@@ -90,7 +90,6 @@ function getColorsByModo(modo) {
   <!-- Card/formulario interno -->
   <div class="p-6 bg-[#2a2f3a]">
     <div class="ingreso-card-section">
-      <div class="ingreso-section-title">CREDENCIALES DEL EGRESO</div>
       <form on:submit|preventDefault={validarYGuardar} class="ingreso-form-grid">
         
         <!-- Código -->
@@ -193,7 +192,7 @@ function getColorsByModo(modo) {
 
 <style>
 .ingreso-card-section { background: transparent; border-radius: 12px; box-shadow: none; padding: 0; }
-.ingreso-section-title { color: #e07676; font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; }
+
 .ingreso-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 28px; margin-bottom: 16px; }
 .ingreso-form-col { display: flex; flex-direction: column; }
 .ingreso-label { color: #fff; font-weight: 500; margin-bottom: 7px; }

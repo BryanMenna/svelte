@@ -10,6 +10,7 @@
   let direccion = '';
   let password = '';
   let newPassword = '';
+  let confirmPassword = '';
   let imagen = null;
   let imagenPreview = null;
   let username = '';   // se carga dinámicamente
@@ -140,6 +141,16 @@ Teléfono: ${telefono}`);
         <input
           type="password"
           bind:value={newPassword}
+          class="w-full bg-[#2b3242] text-white rounded px-4 py-3 mt-2 border border-surface-500"
+          autocomplete="new-password"
+        />
+      </label>
+
+      <label>
+        <span class="text-gray-300">Verificación de contraseña</span>
+        <input
+          type="password"
+          bind:value={confirmPassword}
           class="w-full bg-[#2b3242] text-white rounded px-4 py-3 mt-2 border border-surface-500"
           autocomplete="new-password"
         />

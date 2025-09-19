@@ -244,14 +244,12 @@ function irARuta(ruta) {
   </aside>
 
   <!-- MAIN -->
-  <main
-    class="flex-1 min-h-screen p-8 transition-all duration-300"
+   <main
+    class="flex-1 h-[calc(100vh-3.5rem)] p-8 overflow-auto transition-all duration-300"
     class:ml-64={sidebarVisible}
     class:ml-0={!sidebarVisible}
     style="background-color: #1d222b;"
   >
-
-   
     <slot />
   </main>
 </div>

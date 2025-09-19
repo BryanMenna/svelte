@@ -112,38 +112,55 @@ function convertirDDMMYYYYaISO(str) {
   return str;
 }
 
+let todasOpciones = ["Anual", "Reconducido", "Compensación", "Rectificación"];
 // Alta presupuesto
 function prepararAlta() {
   const anio = filtroAnio !== "todos" ? parseInt(filtroAnio) : new Date().getFullYear();
   anioSeleccionado = anio;
 
   const fechaClave = `01/01/${anio}`;
-  const existe = registros.some(r => r.fecha_vig === fechaClave || r.fecha_vig === `${anio}-01-01` || r.fecha_vig === `01/01/${anio}`);
+  const existe = registros.some(r => 
+    r.fecha_vig === fechaClave || 
+    r.fecha_vig === `${anio}-01-01` || 
+    r.fecha_vig === `01/01/${anio}`
+  );
+
+  // Siempre cargo las 4 opciones
+  opcionesTipo = [...todasOpciones];
+
   if (!existe) {
-    opcionesTipo = ["Anual", "Reconducido"];
-    formData.tipo = "Anual";
+    // 🔹 Primer presupuesto del año
+    formData.tipo = "Anual"; // default
     formData.fecha_vig = `${anio}-01-01`;
     formData.fecha_pro = `${anio}-01-01`;
+
     minVigencia = `${anio}-01-01`;
     minPromulgacion = `${anio}-01-01`;
-    maxFecha = `${anio}-12-31`;
+    maxFecha = `${anio}-01-01`;
+
   } else {
-    opcionesTipo = ["Anual", "Compensación", "Rectificación"];
+    // 🔹 Ya existe presupuesto inicial
     const registrosAnio = registros.filter(r => r.anio == anio);
+
     const ultimaVig = registrosAnio
       .map(r => parseFecha(r.fecha_vig, anio))
       .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
+
     const ultimaPro = registrosAnio
       .map(r => parseFecha(r.fecha_pro, anio))
       .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
+
     minVigencia = addDiasISO(ultimaVig, 1);
     minPromulgacion = addDiasISO(ultimaPro, 1);
     maxFecha = `${anio}-12-31`;
-    formData.tipo = "Compensación";
+
+    formData.tipo = "Compensación"; // default cuando ya hay uno
     formData.fecha_vig = minVigencia;
     formData.fecha_pro = minPromulgacion;
   }
 }
+
+
 
 // Acciones con Toast
 function agregarPresupuesto() {
@@ -158,6 +175,7 @@ function editarRegistro(r) {
   modo = "editar";
   formData = {
     ...r,
+    numero: masked_cod(String(r.numero || '').replace(/\D/g, '')),
     fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
     fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
   };
@@ -185,6 +203,7 @@ function abrirIngresos(r) {
   let mes = fechaPartes.length === 3 ? fechaPartes[1] : '??';
   let anio = fechaPartes.length === 3 ? fechaPartes[2] : r.anio;
   ingresosTitulo = `Ingresos - Ordenanza Nº ${r.numero} - ${mes}/${anio}`;
+  moduloActual = "ingresos";
   tituloActual = ingresosTitulo;
   mostrarIngresos = true;
 
@@ -203,57 +222,71 @@ function cerrarIngresos() {
   mostrarIngresos = false;
   ingresos = [];
   tituloActual = "Presupuesto";
+   moduloActual = "presupuesto";
 }
 
 // Guardar presupuesto (alta, editar, eliminar)
-async function guardarPresupuesto(e) {
-  e.preventDefault();
+// utils/guardarPresupuesto.js
 
-  if (modo === "eliminar") {
-    const res = await fetch("/api/presupuesto", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id_presu: formData.id_presu })
-    });
-    if (!res.ok) {
-      mostrarToast({ mensaje: "Error al eliminar", tipo: "danger" });
-      return;
+// ⚡ Función de guardado del presupuesto
+export async function guardarPresupuesto(formData, modo) {
+  try {
+    const data = {
+      id_presu: formData.id_presu ?? null,
+      tipo: formData.tipo,
+      numero: formData.numero,
+      fecha_vig: formData.fecha_vig,
+      fecha_pro: formData.fecha_pro
+    };
+
+    let response;
+
+    if (modo === "alta") {
+      response = await fetch("/api/presupuesto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    } 
+    else if (modo === "editar") {
+      response = await fetch("/api/presupuesto", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    } 
+    else if (modo === "eliminar") {
+      response = await fetch("/api/presupuesto", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_presu: formData.id_presu })
+      });
     }
-    mostrarToast({ mensaje: `Presupuesto eliminado`, tipo: "danger" });
-    mostrarFormulario = false;
-    await cargarRegistros();
-    return;
-  }
 
-  if (modo === "alta") {
-    const res = await fetch("/api/presupuesto", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    });
-    if (!res.ok) {
-      mostrarToast({ mensaje: "Error al guardar", tipo: "danger" });
-      return;
+    if (!response.ok) {
+      throw new Error("Error al guardar el presupuesto");
     }
-    mostrarToast({ mensaje: 'Presupuesto agregado con éxito', tipo: 'success' });
-  }
 
-  if (modo === "editar") {
-    const res = await fetch("/api/presupuesto", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    });
-    if (!res.ok) {
-      mostrarToast({ mensaje: "Error al actualizar", tipo: "danger" });
-      return;
+    const result = await response.json();
+
+    // ✅ Toasts
+    if (modo === "alta") {
+      mostrarToast({ mensaje: "Presupuesto creado con éxito", tipo: "success" });
+    } else if (modo === "editar") {
+      mostrarToast({ mensaje: "Presupuesto actualizado con éxito", tipo: "success" });
+    } else if (modo === "eliminar") {
+      mostrarToast({ mensaje: "Presupuesto eliminado con éxito", tipo: "success" });
     }
-    mostrarToast({ mensaje: 'Presupuesto actualizado', tipo: 'success' });
-  }
 
-  mostrarFormulario = false;
-  await cargarRegistros();
+    return result;
+  } catch (error) {
+    console.error(error);
+    mostrarToast({ mensaje: "Hubo un error al guardar el presupuesto", tipo: "danger" });
+    return null;
+  }
 }
+
+
 
 function cerrarFormulario() {
   mostrarFormulario = false;
@@ -285,6 +318,20 @@ export function getPadre(partIN) {
   partes.pop(); 
   return partes.join(".");
 }
+
+function prepararEliminar(r) {
+  const ultimo = registrosFiltrados[registrosFiltrados.length - 1];
+  if (r.id_presu !== ultimo.id_presu) {
+    mostrarToast({ mensaje: "Solo puede eliminar el último presupuesto", tipo: "danger" });
+    return;
+  }
+  modo = "eliminar";
+  formData = { ...r, fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig), fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro) };
+  mostrarFormulario = true;
+}
+import { coloresModulo } from '$lib/utils/coloresModulo.js';
+let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
+
 </script>
 
 <ToastContainer />
@@ -300,11 +347,7 @@ export function getPadre(partIN) {
   />
 {:else}
   <!-- Título -->
-  <div class="w-full flex items-center justify-center mt-8 mb-8">
-    <h1 class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg" style="background: #2a2f3a">
-      {tituloActual}
-    </h1>
-  </div>
+ 
 
   <!-- Formulario -->
   {#if mostrarFormulario}
@@ -319,10 +362,22 @@ export function getPadre(partIN) {
       {getPadre}
       {guardarPresupuesto}
       {cerrarFormulario}
+      {picIG}
+      {cargarRegistros}
     />
-  {:else}
+  {:else}    
+ <div class="w-full flex items-center justify-center mt-8 mb-8">
+  <h1
+    class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg"
+    style="background: linear-gradient(90deg, {coloresModulo[moduloActual].start}, {coloresModulo[moduloActual].end});"
+  >
+    {tituloActual}
+  </h1>
+</div>
+
     <!-- Tabla y filtros -->
     <div class="w-full flex items-center my-4 justify-between">
+   
       <div class="flex items-center gap-3">
         <div class="relative w-64">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
@@ -400,23 +455,16 @@ export function getPadre(partIN) {
                 <td class="px-4 py-2 text-center">
   <div class="flex gap-3">
    <!-- Trash -->
+<!-- Botón Eliminar -->
 <button
-  class="text-red-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
+  class="text-red-500 hover:scale-110 disabled:opacity-40"
   title="Eliminar"
   disabled={r !== registrosFiltrados[registrosFiltrados.length - 1]}
-  on:click={() => {
-    modo = "eliminar";
-    formData = {
-      ...r,
-      fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
-      fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
-    };
-    mostrarFormulario = true;
-    mostrarToast({ mensaje: `Preparando eliminación de ${r.numero}`, tipo: "danger" });
-  }}
+  on:click={() => prepararEliminar(r)}
 >
   <Trash2 class="w-4.3 h-5" />
 </button>
+
 
 <!-- Pencil -->
 <button

@@ -2,21 +2,39 @@
 // @ts-nocheck
 import FormularioIngreso from '../../../lib/components/FormularioIngreso.svelte';
 import EgresosModal from '../egresos/+page.svelte'; 
-import { Pencil, Trash2, Eye, DollarSign } from 'lucide-svelte';
+import { Pencil, Trash2, Eye, DollarSign, Plus, FileText, Search } from 'lucide-svelte';
 import { masked_cod, formatCurrency } from '$lib/utils/format.js';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 
 export let ingresos = [];
-// svelte-ignore export_let_unused
 export let ingresosNumero = "";
-export let ingresosIdPresu = "";   //  ahora recibís el ID del presupuesto
+export let ingresosIdPresu = "";   // ID del presupuesto
 export let ingresosTitulo = "";
 export let cerrarIngresos = () => {};
 // svelte-ignore export_let_unused
 export let onEditar = () => {};
 // svelte-ignore export_let_unused
 export let onEliminar = () => {};
-export let onPresu = () => {};     //  callback del padre para abrir egresos
+export let onPresu = () => {};     // callback del padre para abrir egresos
+
+// 🔹 Variables para buscador y filtro
+let filtro = "";
+let filtroAnio = "todos";
+let anios = [2023, 2024, 2025]; // Podés generar esto dinámicamente si querés
+
+function onFiltroInput(e) {
+  filtro = e.target.value;
+  console.log("Filtro aplicado:", filtro);
+}
+
+function cambiarAnio(e) {
+  filtroAnio = e.target.value;
+  console.log("Año seleccionado:", filtroAnio);
+}
+
+function agregarPresupuesto() {
+  mostrarToast({ mensaje: "Nuevo presupuesto pendiente", tipo: "info" });
+}
 
 // Variables para modal ingreso
 let showModal = false;
@@ -58,7 +76,7 @@ let tituloIngreso = ingresosTitulo;
 let subtituloIngreso = "";
 
 // Paginación
-let itemsPerPageIng = 7;
+let itemsPerPageIng = 5;
 let currentPageIng = 1;
 $: totalPagesIng = Math.max(Math.ceil(ingresos.length / itemsPerPageIng), 1);
 $: ingresosPaginados = ingresos.slice(
@@ -85,7 +103,6 @@ function cerrarModal() {
   modalIngreso = { Codigo: '', Detalle: '', Presu: '', IT: '' };
 }
 
-
 function guardarIngresoModal() {
   modalIngreso = null;
   modoModal = null;
@@ -106,23 +123,82 @@ function verIngreso(ing) {
 
 // Reset paginación cuando cambian los ingresos
 $: ingresos, currentPageIng = 1;
+
+import { coloresModulo } from '$lib/utils/coloresModulo.js';
 </script>
 
+
+<!-- Sección de ingresos -->
 <!-- Sección de ingresos -->
 <!-- Sección de ingresos -->
 {#if !mostrarEgresos}
   <!-- Título -->
-  <div class="titulo-ingresos">
+  <div class="titulo-ingresos" style="background: linear-gradient(to right, {coloresModulo.egresos.start}, {coloresModulo.egresos.end});">
     <h2 class="titulo-principal">INGRESOS</h2>
     <p class="subtitulo">{subtituloIngreso || `Ordenanza Nº ${ingresosNumero}`}</p>
+
+    
   </div>
+
+  
+  <!-- 🔹 Bloque buscador / nuevo / pdf / año -->
+  <div class="w-full flex items-center my-4 justify-between">
+    <div class="flex items-center gap-3">
+      <!-- Input buscar -->
+      <div class="relative w-64">
+        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
+        <input
+          type="text"
+          class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
+          placeholder="Buscar fecha..."
+          bind:value={filtro}
+          on:input={onFiltroInput}
+        />
+      </div>
+
+      <!-- Botón agregar presupuesto -->
+      <button 
+        class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+        style="background-color: #21A9FD; width: 32px; height: 32px;"
+        title="Nuevo presupuesto"
+        on:click={agregarPresupuesto}
+      >
+        <Plus class="w-6 h-6" />
+      </button>
+
+      <!-- Botón PDF -->
+      <button 
+        class="p-2 rounded-full text-white hover:scale-110 transition"
+        style="background-color: #323a49; width: 35px; height: 35px;"
+        title="Descargar PDF"
+        on:click={() => mostrarToast({mensaje:"PDF pendiente", tipo:"info"})}
+      >
+        <FileText class="w-5 h-5" />
+      </button>
+    </div>
+
+    <!-- Selector de año -->
+    <div class="flex items-center">
+      <label for="anio" class="text-white mr-2">Año:</label>
+      <div class="select-container">
+        <select id="anio" bind:value={filtroAnio} on:change={cambiarAnio}>
+          <option value="todos">Todos</option>
+          {#each anios as anio}
+            <option value={anio}>{anio}</option>
+          {/each}
+        </select>
+      </div>
+    </div>
+  </div>
+  <!-- 🔹 Fin bloque buscador -->
 
   <!-- Botones navegación -->
   <div class="ingresos-section">
     <div class="flex justify-between items-center mb-4">
       <div class="flex gap-2 items-center">
         <button 
-          class="px-4 py-2 bg-[#323a49] text-white rounded hover:bg-[#212631] transition" 
+          class="px-4 py-2 " 
+           style="background: linear-gradient(90deg, {coloresModulo.presupuesto.start}, {coloresModulo.presupuesto.end});"
           on:click={cerrarIngresos}
         >
           ⬅ Regresar a presupuestos
@@ -130,12 +206,14 @@ $: ingresos, currentPageIng = 1;
       </div>
 
       <button 
-        class="px-4 py-2 bg-[#21A9FD] text-white rounded hover:bg-[#1180c9]" 
+        class="px-4 py-2 " 
+        style="background: linear-gradient(90deg, {coloresModulo.egresos.start}, {coloresModulo.egresos.end});"
         on:click={abrirEgresos}  
       >
-        ➡ Ir a Egresos
+         Ir a Egresos ➡
       </button>
     </div>
+
 
     <!-- 🔹 MOSTRAR TABLA SOLO SI NO HAY FORMULARIO -->
     {#if !modalIngreso && !modoModal}
@@ -145,8 +223,8 @@ $: ingresos, currentPageIng = 1;
             <tr>
               <th class="px-2 py-1 text-left">Código</th>
               <th class="px-2 py-1 text-left">Detalle</th>
-              <th class="px-2 py-1 text-center">IT</th>
-              <th class="px-2 py-1 text-left">Presu</th>
+              <th class="px-2 py-1 text-center">Tipo</th>
+              <th class="px-2 py-1 text-left">Presupuesto</th>
               <th class="px-2 py-1 text-center">Acciones</th>
             </tr>
           </thead>
@@ -160,10 +238,42 @@ $: ingresos, currentPageIng = 1;
             {:else}
               {#each ingresosPaginados as ing}
                 <tr>
-                  <td class="px-3 py-1">{masked_cod(ing.Codigo)}</td>
-                  <td class="px-2 py-1">{ing.Detalle}</td>
-                  <td class="px-2 py-1 text-center">{ing.IT}</td>
-                  <td class="px-2 py-1">{formatCurrency(ing.Presu)}</td>
+                  <td class="px-3 py-1">
+  <span
+    class:font-bold={ing.IT.toUpperCase() === 'TÍTULO'}
+    class:italic={ing.IT.toUpperCase() === 'TÍTULO'}
+  >
+    {masked_cod(ing.Codigo)}
+  </span>
+</td>
+
+<td class="px-2 py-1">
+  <span
+    class:font-bold={ing.IT.toUpperCase() === 'TÍTULO'}
+    class:italic={ing.IT.toUpperCase() === 'TÍTULO'}
+  >
+    {ing.Detalle}
+  </span>
+</td>
+
+<td class="px-2 py-1 text-center">
+  <span
+    class="px-2 py-1 rounded text-xs font-semibold"
+    style="background-color: {ing.IT.toUpperCase() === 'TÍTULO' ? '#34D399' : '#FFC107'}; color: #fff;"
+  >
+    {ing.IT.toUpperCase()}
+  </span>
+</td>
+
+<td class="px-2 py-1">
+  <span
+    class:font-bold={ing.IT.toUpperCase() === 'TÍTULO'}
+    class:italic={ing.IT.toUpperCase() === 'TÍTULO'}
+  >
+    {formatCurrency(ing.Presu)}
+  </span>
+</td>
+
                   <td class="px-2 py-1 flex gap-2 justify-center items-center whitespace-nowrap">
 
                    <!-- Eliminar -->
@@ -266,6 +376,7 @@ $: ingresos, currentPageIng = 1;
     egresosTitulo={egresosTitulo}
     onEditar={(eg) => mostrarToast({ mensaje:`Editar egreso ${eg.Codigo}`, tipo:"info" })}
     onEliminar={(eg) => mostrarToast({ mensaje:`Eliminar egreso ${eg.Codigo}`, tipo:"danger" })}
+    {cerrarIngresos}
   />
 {/if}
 
@@ -315,4 +426,17 @@ table, th, td {
 th, td {
   padding: 8px 12px;
 }
+select {
+    background-color: #323a49;
+    color: white;
+    border-radius: 5px;
+}
+.titulo-ingresos .subtitulo {
+  font-style: italic; /* cursiva */
+  font-weight: 700;   /* negrita */
+  font-size: 1rem;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
 </style>

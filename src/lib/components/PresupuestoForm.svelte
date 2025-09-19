@@ -10,8 +10,11 @@ export let masked_cod;
 export let getPadre;
 export let guardarPresupuesto;
 export let cerrarFormulario;
+export let cargarRegistros;
 // svelte-ignore export_let_unused
 export let onCancelar;
+// svelte-ignore export_let_unused
+export let picIG = "9.9.99.99.99";
 
 // 🔹 estado local para hover del botón Cancelar
 let hoverCancelar = false;
@@ -33,9 +36,69 @@ $: colorHeader = modo === "alta" ? "#450786"
                 : "#666";
 
 $: colorBoton = colorHeader;
-</script>
 
-<section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6">
+function onNumeroInput(e) {
+    const digits = String(e.target.value || '').replace(/\D/g, '');
+    // masked_cod espera la cadena sin separadores y aplica picIG
+    formData.numero = masked_cod(digits);
+  }
+
+  async function handleSubmit(e) {
+  e.preventDefault(); 
+  const result = await guardarPresupuesto(formData, modo);
+  if (result) {
+    cerrarFormulario();     // 🔹 cerrar modal
+    await cargarRegistros(); // 🔹 refrescar tabla
+  }
+}
+
+let todasOpciones = ["Anual", "Reconducido", "Compensación", "Rectificación"];
+
+/**
+ * Prepara valores iniciales al dar de alta un presupuesto
+ */
+export function prepararAlta(registros, anio) {
+  // Buscar si existe presupuesto inicial del 01/01/YYYY
+  let inicial = registros.find(r => r.fecha_vig?.startsWith(`${anio}-01-01`));
+
+  if (!inicial) {
+    // 👉 No existe presupuesto inicial
+    // Opciones permitidas
+    opcionesTipo = ["Anual", "Reconducido"];
+
+    // Fechas fijas 01/01/YYYY
+    formData.fecha_vig = `${anio}-01-01`;
+    formData.fecha_pro = `${anio}-01-01`;
+
+    // Rango fijo (solo 01/01)
+    minVigencia = `${anio}-01-01`;
+    minPromulgacion = `${anio}-01-01`;
+    maxFecha = `${anio}-01-01`;
+  } else {
+    // 👉 Ya existe inicial
+    // Opciones permitidas
+    opcionesTipo = ["Anual", "Compensación", "Rectificación"];
+
+    // Buscar última fecha de vigencia y promulgación para rangos
+    let ultVig = registros.reduce(
+      (a, b) => (a.fecha_vig > b.fecha_vig ? a : b),
+      registros[0]
+    ).fecha_vig;
+
+    let ultPro = registros.reduce(
+      (a, b) => (a.fecha_pro > b.fecha_pro ? a : b),
+      registros[0]
+    ).fecha_pro;
+
+    // Validación de rangos
+    minVigencia = ultVig;
+    minPromulgacion = ultPro;
+    maxFecha = `${anio}-12-31`;
+  }
+}
+</script>
+<div class="flex items-center justify-center min-h-screen">
+<section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 ">
   <!-- 🔹 Encabezado -->
   <div class="px-5 py-3 text-white font-semibold text-lg flex items-center justify-between"
        style="background-color: {colorHeader}">
@@ -57,37 +120,39 @@ $: colorBoton = colorHeader;
       CREDENCIALES DEL PRESUPUESTO
     </div>
 
-    <form on:submit={guardarPresupuesto} class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form on:submit={handleSubmit} class="grid grid-cols-1 md:grid-cols-2 gap-4 ">
       
       <!-- Tipo -->
       <div>
         <!-- svelte-ignore a11y_label_has_associated_control -->
         <label class="block text-sm text-gray-300 mb-1">Tipo:</label>
         <select
-          bind:value={formData.tipo}
-          disabled={modo !== "alta"}
-          class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
-        >
-          {#each opcionesTipo as opt}
-            <option>{opt}</option>
-          {/each}
-        </select>
+  bind:value={formData.tipo}
+  disabled={modo !== "alta" || modo === "eliminar"}
+   class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
+>
+  {#each opcionesTipo as opcion}
+    <option value={opcion}>{opcion}</option>
+  {/each}
+</select>
       </div>
 
       <!-- Número -->
       <div>
         <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm text-gray-300 mb-1">Número:</label>
-        <input
-          type="text"
-          bind:value={formData.numero}
-          class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
-          disabled={modo === "ver"}
-        />
+        <label class="block text-sm text-gray-300 mb-1">Número / Código de partida:</label>
+  <input
+    type="text"
+    bind:value={formData.numero}
+    on:input={onNumeroInput}
+    placeholder={picIG}
+    class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
+    disabled={modo === "ver" || modo === "eliminar"}
+  />
         {#if formData.numero}
           <small class="text-gray-400 block mt-1 text-xs sm:text-sm">
-            {masked_cod(formData.numero)} y su padre es: {getPadre(formData.numero)}
-          </small>
+      {formData.numero} {#if getPadre} - padre: {getPadre(formData.numero)}{/if}
+    </small>
         {/if}
       </div>
 
@@ -101,7 +166,7 @@ $: colorBoton = colorHeader;
           class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
           min={minVigencia}
           max={maxFecha}
-          disabled={modo === "ver"}
+          disabled={modo === "ver" || modo === "eliminar" || (opcionesTipo.length === 2)}
         />
       </div>
 
@@ -115,7 +180,7 @@ $: colorBoton = colorHeader;
           class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
           min={minPromulgacion}
           max={maxFecha}
-          disabled={modo === "ver"}
+          disabled={modo === "ver" || modo === "eliminar" || (opcionesTipo.length === 2)}
         />
       </div>
 
@@ -190,3 +255,4 @@ $: colorBoton = colorHeader;
     </form>
   </div>
 </section>
+</div>

@@ -129,7 +129,7 @@ function prepararUsuario(u) {
         area: u.IDarea ? String(u.IDarea) : '',
         status: u.estado,
         clave: u.clave ?? '',
-        nuevaClave: '',
+        nuevaClave: u.clave ?? '',
         telefono: u.telefono ?? '',
         domicilio: u.domicilio ?? '',
         hasta: u.hasta ?? null 
