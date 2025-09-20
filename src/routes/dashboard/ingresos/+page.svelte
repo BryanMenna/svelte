@@ -246,7 +246,9 @@ export function masked_cod(cod) {
   <!-- 🔹 Fin bloque buscador -->
 
   <!-- Botones navegación -->
+   
   <div class="ingresos-section">
+    {#if !modalIngreso && !modoModal}
     <div class="flex justify-between items-center mb-4">
       <div class="flex gap-2 items-center">
         <button 
@@ -266,6 +268,7 @@ export function masked_cod(cod) {
          Ir a Egresos ➡
       </button>
     </div>
+    {/if}
 
 
     <!-- 🔹 MOSTRAR TABLA SOLO SI NO HAY FORMULARIO -->

@@ -204,6 +204,7 @@ export function masked_cod(cod) {
   <!-- 🔹 Tabla -->
   <div class="egresos-section relative">
     <!-- Botones navegación -->
+     {#if !modalEgreso && !modoModalEgreso}
     <div class="flex justify-between mb-4">
       <button 
         class="px-4 py-2 "
@@ -221,6 +222,7 @@ export function masked_cod(cod) {
         Ir a Ingresos ➡
       </button>
     </div>
+    {/if}
 
     {#if !modalEgreso && !modoModalEgreso}
       <div class="overflow-x-auto rounded-lg shadow-lg">
