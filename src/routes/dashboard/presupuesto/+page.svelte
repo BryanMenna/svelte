@@ -10,7 +10,7 @@ import PresupuestoForm from '../../../lib/components/PresupuestoForm.svelte';
 let anios = [];
 let filtroAnio = "todos";
 let registros = [];
-let itemsPerPage = 5;
+let itemsPerPage = 4;
 let filtro = "";
 let currentPage = 1;
 
