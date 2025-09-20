@@ -4,8 +4,9 @@ import EgresosForm from "../../../lib/components/EgresosForm.svelte";
 import { Pencil, Trash2, Eye, DollarSign, Plus, FileText, Search } from "lucide-svelte";
 import { formatCurrency } from "$lib/utils/format.js";
 import { mostrarToast } from "$lib/utils/mostrarToast.js";
-import { coloresModulo } from '$lib/utils/coloresModulo.js';
 
+import { coloresModulo } from '$lib/utils/coloresModulo.js';
+export let picIG = "9.9.99.99.99";
 export let mostrarEgresos = false;
 export let egresos = [];
 export let cerrarEgresos = () => {};
@@ -141,10 +142,20 @@ function abrirEgresos() {
 // 🔹 Enmascarar código
 export function masked_cod(cod) {
   if (!cod) return "⚠️ Sin código";
-  cod = String(cod);
-  let longitud = cod.length;
-  let asteriscos = Math.max(0, longitud - 2);
-  return "*".repeat(asteriscos) + cod.slice(-2);
+
+  cod = String(cod).replace(/\*/g, ""); // 🔹 limpio cualquier asterisco que venga de la BD
+  let pos = 0;
+  let resultado = "";
+
+  for (let i = 0; i < picIG.length && pos < cod.length; i++) {
+    if (picIG[i] === ".") {
+      resultado += ".";
+    } else {
+      resultado += cod[pos];
+      pos++;
+    }
+  }
+  return resultado;
 }
 </script>
 
@@ -156,12 +167,9 @@ export function masked_cod(cod) {
   </div>
 
   <!-- 🔹 Buscador -->
-   
- {#if !modalEgreso && !modoModalEgreso}
-  <!-- 🔹 Buscador -->
+  {#if !modalEgreso && !modoModalEgreso}
   <div class="w-full flex items-center my-4 justify-between">
     <div class="flex items-center gap-3">
-      <!-- Input buscar -->
       <div class="relative w-64">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
         <input
@@ -174,18 +182,18 @@ export function masked_cod(cod) {
       </div>
 
       <!-- Botón agregar egreso -->
-     <button 
-  class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-  style="background-color: #21A9FD; width: 32px; height: 32px;"
-  title="Nuevo egreso"
-  on:click={() => {
-    abrirFormularioEgreso({ Codigo: '', Detalle: '', Presu: 0, IT: '' }, 'alta');
-    tituloEgreso = "Nuevo Egreso";   // 🔹 título dinámico
-    mostrarToast({ mensaje: "Creando nuevo egreso", tipo: "info" });
-  }}
->
-  <Plus class="w-6 h-6" />
-</button>
+      <button 
+        class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+        style="background-color: #21A9FD; width: 32px; height: 32px;"
+        title="Nuevo egreso"
+        on:click={() => {
+          abrirFormularioEgreso({ Codigo: '', Detalle: '', Presu: 0, IT: '' }, 'alta');
+          tituloEgreso = "Nuevo Egreso";   // 🔹 título dinámico
+          mostrarToast({ mensaje: "Creando nuevo egreso", tipo: "info" });
+        }}
+      >
+        <Plus class="w-6 h-6" />
+      </button>
 
       <!-- Botón PDF -->
       <button 
@@ -198,13 +206,11 @@ export function masked_cod(cod) {
       </button>
     </div>
   </div>
-{/if}
-
+  {/if}
 
   <!-- 🔹 Tabla -->
   <div class="egresos-section relative">
-    <!-- Botones navegación -->
-     {#if !modalEgreso && !modoModalEgreso}
+    {#if !modalEgreso && !modoModalEgreso}
     <div class="flex justify-between mb-4">
       <button 
         class="px-4 py-2 "
@@ -311,7 +317,6 @@ export function masked_cod(cod) {
     {/if}
   </div>
 {/if}
-
 
 <style>
 .egresos-section {

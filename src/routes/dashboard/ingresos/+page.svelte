@@ -175,13 +175,22 @@ export let picIG = "9.9.99.99.99";
 
 export function masked_cod(cod) {
   if (!cod) return "⚠️ Sin código";
-  cod = String(cod);
-  let longitud = cod.length;
 
-  // aseguramos que el repeat nunca sea negativo
-  let asteriscos = Math.max(0, longitud - 2);
-  return "*".repeat(asteriscos) + cod.slice(-2);
+  cod = String(cod).replace(/\*/g, ""); // 🔹 limpio cualquier asterisco que venga de la BD
+  let pos = 0;
+  let resultado = "";
+
+  for (let i = 0; i < picIG.length && pos < cod.length; i++) {
+    if (picIG[i] === ".") {
+      resultado += ".";
+    } else {
+      resultado += cod[pos];
+      pos++;
+    }
+  }
+  return resultado;
 }
+
 
 
 </script>
@@ -299,9 +308,10 @@ export function masked_cod(cod) {
     class:font-bold={ing.IT.toUpperCase() === 'TÍTULO'}
     class:italic={ing.IT.toUpperCase() === 'TÍTULO'}
   >
-    {masked_cod(String(ing.Codigo))}
+    {masked_cod(ing.Codigo)}
   </span>
 </td>
+
 
 <td class="px-2 py-1">
   <span
