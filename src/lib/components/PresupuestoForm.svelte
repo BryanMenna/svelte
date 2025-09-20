@@ -7,6 +7,7 @@ export let minVigencia = "";
 export let minPromulgacion = "";
 export let maxFecha = "";
 export let masked_cod;
+// svelte-ignore export_let_unused
 export let getPadre;
 export let guardarPresupuesto;
 export let cerrarFormulario;
@@ -138,23 +139,18 @@ export function prepararAlta(registros, anio) {
       </div>
 
       <!-- Número -->
-      <div>
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm text-gray-300 mb-1">Número / Código de partida:</label>
+<div>
+  <!-- svelte-ignore a11y_label_has_associated_control -->
+  <label class="block text-sm text-gray-300 mb-1">Número:</label>
   <input
     type="text"
     bind:value={formData.numero}
-    on:input={onNumeroInput}
-    placeholder={picIG}
+    placeholder="Ingrese número de ordenanza"
     class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
     disabled={modo === "ver" || modo === "eliminar"}
   />
-        {#if formData.numero}
-          <small class="text-gray-400 block mt-1 text-xs sm:text-sm">
-      {formData.numero} {#if getPadre} - padre: {getPadre(formData.numero)}{/if}
-    </small>
-        {/if}
-      </div>
+</div>
+
 
       <!-- Fecha Vigencia -->
       <div>

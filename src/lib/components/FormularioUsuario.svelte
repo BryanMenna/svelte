@@ -1,7 +1,7 @@
 <script>
 // @ts-nocheck
 import { createEventDispatcher, onMount, tick } from 'svelte';
-import { Eye, EyeOff, X } from 'lucide-svelte';
+import { Eye, EyeOff } from 'lucide-svelte';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 
 let fechaRef;
@@ -12,13 +12,24 @@ export let disabled = false;
 export let mostrarUsername = true;
 // svelte-ignore export_let_unused
 export let ordenAgregar = false;
+
 let verPassword = false;
 let verRepetir = false;
 const dispatch = createEventDispatcher();
 
 const defaultUsuario = {
-  nombre: '', apellido: '', username: '', email: '', clave: '', nuevaClave: '',
-  tipo: '', area: '', status: 'Activo', hasta: "", telefono: '', domicilio: ''
+  nombre: '',
+  apellido: '',
+  username: '',
+  email: '',
+  clave: '',
+  repetirClave: '',
+  tipo: '',
+  area: '',
+  status: 'Activo',
+  hasta: "",
+  telefono: '',
+  domicilio: ''
 };
 
 let areas = [];
@@ -42,17 +53,19 @@ onMount(async () => {
     const res = await fetch('/api/areas');
     const data = await res.json();
     if (data.success) areas = data.areas;
-  } catch (e) { console.error(e); }
-  await tick();
-  if (fechaRef) {
-    await initCalendar();
+  } catch (e) {
+    console.error(e);
   }
+  await tick();
+  if (fechaRef) await initCalendar();
 });
 
-$: usuarioLocal = (usuario && usuario.id)
-  ? { ...defaultUsuario, ...usuario, hasta: formatFechaFlatpickr(usuario.hasta) }
-  : { ...defaultUsuario };
+// Inicializamos usuarioLocal y nuevaClave con la clave actual
+usuarioLocal = (usuario && usuario.id)
+  ? { ...defaultUsuario, ...usuario, hasta: formatFechaFlatpickr(usuario.hasta), nuevaClave: usuario.clave }
+  : { ...defaultUsuario, nuevaClave: '' };
 
+// --- Flatpickr ---
 async function initCalendar() {
   if (fp) {
     fp.destroy();
@@ -89,61 +102,42 @@ async function initCalendar() {
   });
 }
 
-// -- Agrega los botones "Borrar" y "Hoy" al panel del calendario --
+// Botones "Hoy" y "Borrar"
 function injectCustomButtons(selectedDates, dateStr, instance) {
   const panel = instance.calendarContainer?.querySelector('.flatpickr-confirm');
   if (!panel) return;
-
-  // Evitar duplicados
   if (instance.calendarContainer.querySelector('.flatpickr-clear')) return;
 
-  // Botón Borrar
+  // Borrar
   const btnClear = document.createElement('button');
   btnClear.type = 'button';
-  btnClear.innerHTML = `
-    <span style="vertical-align:middle;margin-right:6px;">Borrar</span>`;
+  btnClear.innerHTML = `<span style="vertical-align:middle;margin-right:6px;">Borrar</span>`;
   btnClear.className = 'flatpickr-clear';
   btnClear.style.cssText = `
-    margin-left:8px;
-    background:#dc2626;
-    color:#fff;
-    border-radius:6px;
-    padding:6px 14px;
-    font-weight:bold;
-    border:none;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
+    margin-left:8px; background:#dc2626; color:#fff; border-radius:6px;
+    padding:6px 14px; font-weight:bold; border:none; cursor:pointer;
+    display:inline-flex; align-items:center;
   `;
   btnClear.onmouseenter = () => btnClear.style.background = '#b91c1c';
   btnClear.onmouseleave = () => btnClear.style.background = '#dc2626';
-
   btnClear.onclick = () => {
     usuarioLocal.hasta = "";
     instance.clear();
     instance.close();
   };
 
-  // Botón Hoy
+  // Hoy
   const btnHoy = document.createElement('button');
   btnHoy.type = 'button';
   btnHoy.innerHTML = `<span style="vertical-align:middle;margin-right:6px;">Hoy</span>`;
   btnHoy.className = 'flatpickr-today';
   btnHoy.style.cssText = `
-    margin-left:8px;
-    background:#2563eb;
-    color:#fff;
-    border-radius:6px;
-    padding:6px 14px;
-    font-weight:bold;
-    border:none;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
+    margin-left:8px; background:#2563eb; color:#fff; border-radius:6px;
+    padding:6px 14px; font-weight:bold; border:none; cursor:pointer;
+    display:inline-flex; align-items:center;
   `;
   btnHoy.onmouseenter = () => btnHoy.style.background = '#1d4ed8';
   btnHoy.onmouseleave = () => btnHoy.style.background = '#2563eb';
-
   btnHoy.onclick = () => {
     const now = new Date();
     const Y = now.getFullYear();
@@ -153,7 +147,7 @@ function injectCustomButtons(selectedDates, dateStr, instance) {
     const m = String(now.getMinutes()).padStart(2, '0');
     const hoyStr = `${Y}-${M}-${D} ${h}:${m}`;
     usuarioLocal.hasta = hoyStr;
-    instance.setDate(hoyStr);   // flatpickr lo muestra y selecciona
+    instance.setDate(hoyStr);
     instance.close();
   };
 
@@ -161,13 +155,18 @@ function injectCustomButtons(selectedDates, dateStr, instance) {
   panel.parentNode?.appendChild(btnClear);
 }
 
+// --- Manejar Submit ---
 function manejarSubmit(e) {
   e.preventDefault();
   errores = {};
 
   // Campos obligatorios generales
-  let camposRequeridos = ['nombre', 'apellido', 'email', 'clave', 'repetirClave', 'tipo', 'area', 'status'];
+  let camposRequeridos = ['nombre', 'apellido', 'email', 'clave', 'tipo', 'area', 'status'];
   if (mostrarUsername) camposRequeridos.push('username');
+
+  // Validación: si el usuario ingresó nueva contraseña, se exige repetirClave
+  const cambiandoClave = usuarioLocal.nuevaClave && usuarioLocal.nuevaClave !== usuarioLocal.clave;
+  if (cambiandoClave) camposRequeridos.push('repetirClave');
 
   // Verificar campos vacíos
   const incompletos = camposRequeridos.filter(campo => {
@@ -194,8 +193,8 @@ function manejarSubmit(e) {
     return;
   }
 
-  // Validar coincidencia de contraseñas
-  if (usuarioLocal.clave !== usuarioLocal.repetirClave) {
+  // Validar coincidencia de contraseñas solo si se está cambiando
+  if (cambiandoClave && usuarioLocal.nuevaClave !== usuarioLocal.repetirClave) {
     errores.clave = true;
     errores.repetirClave = true;
     mostrarToast({
@@ -205,11 +204,16 @@ function manejarSubmit(e) {
     return;
   }
 
-  // Si todo está OK, despachar evento submit
+  // Si no ingresó nueva contraseña, usar la actual
+  if (!usuarioLocal.nuevaClave) {
+    usuarioLocal.nuevaClave = usuarioLocal.clave;
+    usuarioLocal.repetirClave = usuarioLocal.clave;
+  }
+
   dispatch('submit', usuarioLocal);
 }
-
 </script>
+
 
 
 
@@ -263,19 +267,19 @@ function manejarSubmit(e) {
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label>Nueva contraseña:</label>
     <div class="relative">
-       <input
-    type={verRepetir ? "text" : "password"}
-    title="Nueva Contraseña"
-    class="input w-full {errores.nuevaClave ? 'input-error' : ''} pr-10"
-    bind:value={usuarioLocal.nuevaClave}
-    {disabled}
-    placeholder="Nueva contraseña"/>
-  <button type="button" tabindex="-1"
-    class="absolute right-3 top-1/2 -translate-y-1/2"
-    on:click={() => verRepetir = !verRepetir}
-    style="background: none; border: none; padding: 0; cursor: pointer; color: #6c6c74;">
-    {#if verRepetir}<EyeOff class="w-5 h-5" />{:else}<Eye class="w-5 h-5" />{/if}
-  </button>
+      <input
+      type={verRepetir ? "text" : "password"}
+      title="Nueva Contraseña"
+      class="input w-full {errores.repetirClave ? 'input-error' : ''} pr-10"
+      bind:value={usuarioLocal.nuevaClave}
+      {disabled}
+      placeholder="Nueva contraseña"/>
+    <button type="button" tabindex="-1"
+      class="absolute right-3 top-1/2 -translate-y-1/2"
+      on:click={() => verRepetir = !verRepetir}
+      style="background: none; border: none; padding: 0; cursor: pointer; color: #6c6c74;">
+      {#if verRepetir}<EyeOff class="w-5 h-5" />{:else}<Eye class="w-5 h-5" />{/if}
+    </button>
     </div>
   </div>
 

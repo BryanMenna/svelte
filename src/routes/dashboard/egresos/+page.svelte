@@ -2,20 +2,23 @@
 // @ts-nocheck
 import EgresosForm from "../../../lib/components/EgresosForm.svelte";
 import { Pencil, Trash2, Eye, DollarSign, Plus, FileText, Search } from "lucide-svelte";
-import { masked_cod, formatCurrency } from "$lib/utils/format.js";
+import { formatCurrency } from "$lib/utils/format.js";
 import { mostrarToast } from "$lib/utils/mostrarToast.js";
+import { coloresModulo } from '$lib/utils/coloresModulo.js';
 
 export let mostrarEgresos = false;
 export let egresos = [];
 export let cerrarEgresos = () => {};
 export let egresosTitulo = "";   // título principal
 export let cerrarIngresos;
+export let egresosIdPresu = null;
 
 // 🔹 Variables de filtro / buscador
 let filtroEgreso = "";
 let filtroAnioEgreso = "todos";
-let aniosEgreso = [2023, 2024, 2025]; // podés generarlo dinámico
+let aniosEgreso = [2023, 2024, 2025]; 
 
+// Filtros
 function onFiltroEgreso(e) {
   filtroEgreso = e.target.value;
   console.log("Filtro egreso:", filtroEgreso);
@@ -28,11 +31,75 @@ function agregarEgreso() {
   mostrarToast({ mensaje: "Nuevo egreso pendiente", tipo: "info" });
 }
 
-// Formulario egreso activo
+// 🔹 Limpiar código
+function cleanCodigo(cod) {
+  if (!cod) return "";
+  return String(cod).replace(/\*/g, "");
+}
+
+// 🔹 Guardar egreso (alta, modificar, baja)
+async function guardarEgresoModal(egresoActualizado) {
+  try {
+    if (!egresosIdPresu) {
+      mostrarToast({ mensaje: "❌ Falta IDPresu, no se puede guardar", tipo: "danger" });
+      return;
+    }
+
+    const codigoLimpio = cleanCodigo(egresoActualizado.Codigo);
+
+    const payload = {
+      ...egresoActualizado,
+      IDPresu: egresosIdPresu,   // 👈 forzamos siempre el ID
+      Codigo: codigoLimpio
+    };
+
+    console.log("📤 Payload enviado a BD:", payload);
+
+    let res;
+    if (modoModalEgreso === 'alta') {
+      res = await fetch('/api/egresos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else if (modoModalEgreso === 'modificar' || modoModalEgreso === 'presu') {
+      res = await fetch('/api/egresos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else if (modoModalEgreso === 'baja') {
+      res = await fetch('/api/egresos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText);
+    }
+
+    // Refrescar lista de egresos
+    const lista = await fetch(`/api/egresos?idPresu=${egresosIdPresu}`);
+    egresos = await lista.json();
+
+    mostrarToast({ mensaje: "✅ Cambios guardados en BD", tipo: "success" });
+  } catch (err) {
+    mostrarToast({ mensaje: "❌ Error guardando egreso", tipo: "danger" });
+    console.error("Error guardarEgresoModal:", err);
+  } finally {
+    modalEgreso = null;
+    modoModalEgreso = null;
+  }
+}
+
+// 🔹 Variables de formulario
 let modalEgreso = null;
 let modoModalEgreso = null;
 
-// Paginación
+// 🔹 Paginación
 let currentPage = 1;
 let itemsPerPage = 5;
 $: totalPages = Math.max(Math.ceil(egresos.length / itemsPerPage), 1);
@@ -40,54 +107,61 @@ $: egresosPaginados = egresos.slice(
   (currentPage - 1) * itemsPerPage,
   currentPage * itemsPerPage
 );
+function nextPage() { if (currentPage < totalPages) currentPage++; }
+function prevPage() { if (currentPage > 1) currentPage--; }
 
-function nextPage() {
-  if (currentPage < totalPages) currentPage++;
-}
-function prevPage() {
-  if (currentPage > 1) currentPage--;
-}
-
-// Abrir formulario
+// 🔹 Abrir/Cerrar formulario
 function abrirFormularioEgreso(eg, modo = "consulta") {
-  modalEgreso = { ...eg };
+  modalEgreso = { 
+    ...eg, 
+    IDPresu: egresosIdPresu,   // 👈 se agrega el ID siempre
+    Codigo: cleanCodigo(eg.Codigo) 
+  };
   modoModalEgreso = modo;
 }
-
-// Cerrar formulario
 function cerrarFormularioEgreso() {
   modalEgreso = null;
   modoModalEgreso = null;
 }
 
-// Guardar (mock)
+// 🔹 Mock guardar local
 function guardarEgreso(event) {
   mostrarToast({ mensaje: "✅ Egreso guardado con éxito", tipo: "success" });
   modalEgreso = null;
   modoModalEgreso = null;
 }
 
-import { coloresModulo } from '$lib/utils/coloresModulo.js';
+// 🔹 Abrir módulo
 function abrirEgresos() {
   mostrarEgresos = true;
   moduloActual = "egresos";
   tituloActual = "Egresos";
 }
 
-
+// 🔹 Enmascarar código
+export function masked_cod(cod) {
+  if (!cod) return "⚠️ Sin código";
+  cod = String(cod);
+  let longitud = cod.length;
+  let asteriscos = Math.max(0, longitud - 2);
+  return "*".repeat(asteriscos) + cod.slice(-2);
+}
 </script>
 
 {#if mostrarEgresos}
   <!-- Título -->
-  <div class="titulo-ingresos"  style="background: linear-gradient(to right, {coloresModulo.ingresos.start}, {coloresModulo.ingresos.end});">
+  <div class="titulo-ingresos" style="background: linear-gradient(to right, {coloresModulo.ingresos.start}, {coloresModulo.ingresos.end});">
     <h2 class="titulo-principal">EGRESOS</h2>
     <p class="subtitulo">{egresosTitulo}</p>
   </div>
 
-  <!-- 🔹 BUSCADOR Y FILTRO FUERA DEL CUADRO -->
+  <!-- 🔹 Buscador -->
+   
+ {#if !modalEgreso && !modoModalEgreso}
+  <!-- 🔹 Buscador -->
   <div class="w-full flex items-center my-4 justify-between">
     <div class="flex items-center gap-3">
-      <!-- Buscar -->
+      <!-- Input buscar -->
       <div class="relative w-64">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
         <input
@@ -99,17 +173,21 @@ function abrirEgresos() {
         />
       </div>
 
-      <!-- Nuevo -->
-      <button 
-        class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-        style="background-color: #21A9FD; width: 32px; height: 32px;"
-        title="Nuevo egreso"
-        on:click={agregarEgreso}
-      >
-        <Plus class="w-6 h-6" />
-      </button>
+      <!-- Botón agregar egreso -->
+     <button 
+  class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+  style="background-color: #21A9FD; width: 32px; height: 32px;"
+  title="Nuevo egreso"
+  on:click={() => {
+    abrirFormularioEgreso({ Codigo: '', Detalle: '', Presu: 0, IT: '' }, 'alta');
+    tituloEgreso = "Nuevo Egreso";   // 🔹 título dinámico
+    mostrarToast({ mensaje: "Creando nuevo egreso", tipo: "info" });
+  }}
+>
+  <Plus class="w-6 h-6" />
+</button>
 
-      <!-- PDF -->
+      <!-- Botón PDF -->
       <button 
         class="p-2 rounded-full text-white hover:scale-110 transition"
         style="background-color: #323a49; width: 35px; height: 35px;"
@@ -119,24 +197,13 @@ function abrirEgresos() {
         <FileText class="w-5 h-5" />
       </button>
     </div>
-
-    <!-- Año -->
-    <div class="flex items-center">
-      <label for="anioEgreso" class="text-white mr-2">Año:</label>
-      <div class="select-container">
-        <select id="anioEgreso" bind:value={filtroAnioEgreso} on:change={cambiarAnioEgreso}>
-          <option value="todos">Todos</option>
-          {#each aniosEgreso as anio}
-            <option value={anio}>{anio}</option>
-          {/each}
-        </select>
-      </div>
-    </div>
   </div>
+{/if}
 
-  <!-- 🔹 CUADRO DE EGRESOS -->
+
+  <!-- 🔹 Tabla -->
   <div class="egresos-section relative">
-    <!-- BOTONES DENTRO DEL CUADRO -->
+    <!-- Botones navegación -->
     <div class="flex justify-between mb-4">
       <button 
         class="px-4 py-2 "
@@ -155,141 +222,94 @@ function abrirEgresos() {
       </button>
     </div>
 
-  <!-- TABLA SOLO SI NO HAY FORMULARIO -->
-  {#if !modalEgreso && !modoModalEgreso}
-    <div class="overflow-x-auto rounded-lg shadow-lg">
-      <table class="min-w-full text-white bg-[#232a34] border-collapse">
-        <thead class="bg-[#323a49]">
-          <tr>
-            <th class="px-2 py-1 text-left">Código</th>
-            <th class="px-2 py-1 text-left">Detalle</th>
-            <th class="px-2 py-1 text-center">Tipo</th>
-            <th class="px-2 py-1 text-left">Presupuesto</th>
-            <th class="px-2 py-1 text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#if egresosPaginados.length === 0}
+    {#if !modalEgreso && !modoModalEgreso}
+      <div class="overflow-x-auto rounded-lg shadow-lg">
+        <table class="min-w-full text-white bg-[#232a34] border-collapse">
+          <thead class="bg-[#323a49]">
             <tr>
-              <td colspan="5" class="text-center py-4 text-gray-400 italic">
-                No hay egresos cargados
-              </td>
+              <th class="px-2 py-1 text-left">Código</th>
+              <th class="px-2 py-1 text-left">Detalle</th>
+              <th class="px-2 py-1 text-center">Tipo</th>
+              <th class="px-2 py-1 text-left">Presupuesto</th>
+              <th class="px-2 py-1 text-center">Acciones</th>
             </tr>
-          {:else}
-            {#each egresosPaginados as eg}
+          </thead>
+          <tbody>
+            {#if egresosPaginados.length === 0}
               <tr>
-                <td class="px-2 py-1">
-                  <span class="{eg.IT.toUpperCase() === 'TÍTULO' ? 'font-bold italic' : ''}">
-                     {masked_cod(eg.Codigo)}
-                  </span>
-                 </td>
-                <td class="px-2 py-1">
-                  <span class="{eg.IT.toUpperCase() === 'TÍTULO' ? 'font-bold italic' : ''}">
-                    {eg.Detalle}
-                  </span>
-                </td>
-                <td class="px-2 py-1 text-center">
-                  <span 
-                    class="px-2 py-1 rounded text-xs font-semibold"
-                    style="background-color: {eg.IT.toUpperCase() === 'TÍTULO' ? '#34D399' : '#FFC107'}; color: #fff;"
-                    >
-                    {eg.IT.toUpperCase()}
-                  </span>
-                </td>
-                <td class="px-2 py-1">
-                   <span class="{eg.IT.toUpperCase() === 'TÍTULO' ? 'font-bold italic' : ''}">
-                     {formatCurrency(eg.Presu)}
-                  </span>
-                  </td>
-                <td class="px-2 py-1 flex gap-2 justify-center items-center whitespace-nowrap">
-                  <!-- Eliminar -->
-    <button
-      class="text-red-500 hover:scale-110"
-      title="Eliminar"
-      on:click={() => {
-        abrirFormularioEgreso(eg, "baja");
-        mostrarToast({ mensaje: `Eliminar egreso ${eg.Codigo}`, tipo: "danger" });
-      }}
-    >
-      <Trash2 class="w-5 h-5" />
-    </button>
-
-    <!-- Editar -->
-    <button
-      class="text-blue-500 hover:scale-110"
-      title="Editar"
-      on:click={() => {
-        abrirFormularioEgreso(eg, "modificar");
-        mostrarToast({ mensaje: `Editar egreso ${eg.Codigo}`, tipo: "info" });
-      }}
-    >
-      <Pencil class="w-5 h-5" />
-    </button>
-
-    <!-- Ver -->
-    <button
-      class="text-green-500 hover:scale-110"
-      title="Ver"
-      on:click={() => {
-        abrirFormularioEgreso(eg, "consulta");
-        mostrarToast({ mensaje: `Ver egreso ${eg.Codigo}`, tipo: "success" });
-      }}
-    >
-      <Eye class="w-5 h-5" />
-    </button>
-
-    <!-- Presupuesto -->
-    <button
-      class="text-yellow-400 hover:scale-110"
-      title="Dinero"
-      on:click={() => {
-        abrirFormularioEgreso(eg, "presu");
-        mostrarToast({ mensaje: `Presupuesto del egreso ${eg.Codigo}`, tipo: "warning" });
-      }}
-    >
-      <DollarSign class="w-5 h-5" />
-    </button>
+                <td colspan="5" class="text-center py-4 text-gray-400 italic">
+                  No hay egresos cargados
                 </td>
               </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
-    </div>
+            {:else}
+              {#each egresosPaginados as eg}
+                <tr>
+                  <td class="px-2 py-1">{masked_cod(eg.Codigo)}</td>
+                  <td class="px-2 py-1">{eg.Detalle}</td>
+                  <td class="px-2 py-1 text-center">
+                    <span class="px-2 py-1 rounded text-xs font-semibold"
+                      style="background-color: {eg.IT.toUpperCase() === 'TÍTULO' ? '#34D399' : '#FFC107'}; color: #fff;">
+                      {eg.IT.toUpperCase()}
+                    </span>
+                  </td>
+                  <td class="px-2 py-1">{formatCurrency(eg.Presu)}</td>
+                  <td class="px-2 py-1 flex gap-2 justify-center items-center">
+                    <!-- Eliminar -->
+                    <button class="text-red-500 hover:scale-110" title="Eliminar"
+                      on:click={() => { abrirFormularioEgreso(eg, "baja"); }}>
+                      <Trash2 class="w-5 h-5" />
+                    </button>
+                    <!-- Editar -->
+                    <button class="text-blue-500 hover:scale-110" title="Editar"
+                      on:click={() => { abrirFormularioEgreso(eg, "modificar"); }}>
+                      <Pencil class="w-5 h-5" />
+                    </button>
+                    <!-- Ver -->
+                    <button class="text-green-500 hover:scale-110" title="Ver"
+                      on:click={() => { abrirFormularioEgreso(eg, "consulta"); }}>
+                      <Eye class="w-5 h-5" />
+                    </button>
+                    <!-- Presupuesto -->
+                    <button class="text-yellow-400 hover:scale-110" title="Dinero"
+                      on:click={() => { abrirFormularioEgreso(eg, "presu"); }}>
+                      <DollarSign class="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              {/each}
+            {/if}
+          </tbody>
+        </table>
+      </div>
 
-    <!-- Paginación -->
-    <div class="flex justify-between items-center mt-4 text-white">
-      <button 
-        class="px-4 py-2 bg-[#323a49] rounded hover:bg-[#212631] disabled:opacity-40"
-        on:click={prevPage}
-        disabled={currentPage === 1}
-      >
-        ⬅ Anterior
-      </button>
-      <span>Página {currentPage} de {totalPages}</span>
-      <button 
-        class="px-4 py-2 bg-[#323a49] rounded hover:bg-[#212631] disabled:opacity-40"
-        on:click={nextPage}
-        disabled={currentPage === totalPages}
-      >
-        Siguiente ➡
-      </button>
-    </div>
-  {/if}
+      <!-- Paginación -->
+      <div class="flex justify-between items-center mt-4 text-white">
+        <button class="px-4 py-2 bg-[#323a49] rounded hover:bg-[#212631] disabled:opacity-40"
+          on:click={prevPage} disabled={currentPage === 1}>
+          ⬅ Anterior
+        </button>
+        <span>Página {currentPage} de {totalPages}</span>
+        <button class="px-4 py-2 bg-[#323a49] rounded hover:bg-[#212631] disabled:opacity-40"
+          on:click={nextPage} disabled={currentPage === totalPages}>
+          Siguiente ➡
+        </button>
+      </div>
+    {/if}
 
-  <!-- FORMULARIO ENCIMA DE LA TABLA -->
-  {#if modalEgreso && modoModalEgreso}
-    <div class="mt-6">
-      <EgresosForm
-        egreso={modalEgreso}
-        modo={modoModalEgreso}
-        on:guardar={guardarEgreso}             
-        on:cancelar={cerrarFormularioEgreso}   
-      />
-    </div>
-  {/if}
-</div>
+    <!-- Formulario -->
+    {#if modalEgreso && modoModalEgreso}
+      <div class="mt-6">
+        <EgresosForm
+          egreso={modalEgreso}
+          modo={modoModalEgreso}
+          on:guardar={(e) => guardarEgresoModal(e.detail)}
+          on:cancelar={() => { modalEgreso = null; modoModalEgreso = null; }}
+        />
+      </div>
+    {/if}
+  </div>
 {/if}
+
 
 <style>
 .egresos-section {
@@ -299,7 +319,6 @@ function abrirEgresos() {
   padding: 26px 22px;
   margin-top: 28px;
 }
-
 tbody tr:nth-child(odd) { background-color: #2a2f3a; }
 tbody tr:nth-child(even) { background-color: #212631; }
 tbody td { padding: 12px 12px; }
@@ -324,13 +343,5 @@ tbody td { padding: 12px 12px; }
   font-size: 1rem;
   margin-top: 4px;
   margin-bottom: 0;
-}
-th, td { padding: 8px 12px; }
-th:last-child { border-bottom: none !important; }
-
-select {
-    background-color: #323a49;
-    color: white;
-    border-radius: 5px;
 }
 </style>

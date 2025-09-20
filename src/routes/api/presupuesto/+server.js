@@ -32,10 +32,12 @@ export async function POST({ request }) {
 
     // @ts-ignore
     const [result] = await pool.execute(
-      `INSERT INTO ct_presu (Tipo, Numero, FechaVig, FechaPro)
-       VALUES (?, ?, ?, ?)`,
-      [tipo, numero, fecha_vig, fecha_pro]
-    );
+  `UPDATE ct_part_eg SET Detalle=?, Presu=? WHERE IDPresu=? AND Codigo=?`,
+  // @ts-ignore
+  [Detalle, Presu, IDPresu, Codigo]
+);
+console.log("Filas afectadas:", result.affectedRows);
+
 
     return json({ id_presu: result.insertId, tipo, numero, fecha_vig, fecha_pro });
   } catch (err) {

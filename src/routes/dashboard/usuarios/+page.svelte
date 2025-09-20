@@ -304,7 +304,7 @@ function descargarPDF() {
             <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
         </div>
 
-        <div class="p-6 bg-[#212631]">
+        <div class="p-6 bg-[#212631] max-h-[70vh] overflow-y-auto">
             <FormularioUsuario 
                 {usuario} 
                 accionModal={accionFormulario}

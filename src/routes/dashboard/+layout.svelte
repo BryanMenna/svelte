@@ -113,6 +113,8 @@ function irARuta(ruta) {
   navegar(ruta);
 }
 
+
+
 </script>
 
 <!-- HEADER -->
@@ -245,13 +247,13 @@ function irARuta(ruta) {
 
   <!-- MAIN -->
    <main
-    class="flex-1 h-[calc(100vh-3.5rem)] p-8 overflow-auto transition-all duration-300"
-    class:ml-64={sidebarVisible}
-    class:ml-0={!sidebarVisible}
-    style="background-color: #1d222b;"
-  >
-    <slot />
-  </main>
+  class="flex-1 h-[calc(100vh-3.5rem)] p-8 transition-all duration-300"
+  class:ml-64={sidebarVisible}
+  class:ml-0={!sidebarVisible}
+  style="background-color: #1d222b; overflow: hidden;"
+>
+  <slot />
+</main>
 </div>
 
 <style>

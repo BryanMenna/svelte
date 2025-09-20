@@ -4,6 +4,7 @@ import { createEventDispatcher } from "svelte";
 import { masked_cod } from '$lib/utils/format.js';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 
+// ✅ Corrección: el dispatcher debe ejecutarse
 const dispatch = createEventDispatcher();
 
 export let modo = 'alta'; // 'alta', 'modificar', 'baja', 'consulta', 'presu'
@@ -56,7 +57,7 @@ async function validarYGuardar(e) {
     }
   }
 
- 
+  // ✅ Usamos el dispatcher correctamente
   dispatch("guardar", egreso);
 }
 
@@ -148,43 +149,40 @@ function getColorsByModo(modo) {
         <div class="ingreso-btn-actions">
           <!-- svelte-ignore a11y_mouse_events_have_key_events -->
           <button 
-  type="submit"
-  class="px-4 py-2 rounded text-white transition font-medium"
-  style="background: {hoverGuardar ? getColorsByModo(modo).hover : getColorsByModo(modo).base};"
-  on:mouseover={() => hoverGuardar = true}
-  on:mouseout={() => hoverGuardar = false}>
-  {modo === 'consulta' ? 'Cerrar' 
-    : modo === 'baja' ? 'Eliminar' 
-    : 'Guardar'}
-</button>
+            type="submit"
+            class="px-4 py-2 rounded text-white transition font-medium"
+            style="background: {hoverGuardar ? getColorsByModo(modo).hover : getColorsByModo(modo).base};"
+            on:mouseover={() => hoverGuardar = true}
+            on:mouseout={() => hoverGuardar = false}>
+            {modo === 'consulta' ? 'Cerrar' 
+              : modo === 'baja' ? 'Eliminar' 
+              : 'Guardar'}
+          </button>
 
-          <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-         <!-- Botón Cancelar -->
           {#if modo !== 'consulta'}
-<button
-  type="button"
-  class="px-4 py-2 rounded font-medium transition-colors ml-2"
-  style="
-    background: transparent;
-    color: {getColorsByModo(modo).base};
-    border: 1px solid {getColorsByModo(modo).base};
-  "
-  on:mouseover={(e) => {
-    e.currentTarget.style.background = getColorsByModo(modo).base;
-    e.currentTarget.style.color = '#fff';
-  }}
-  on:mouseout={(e) => {
-    e.currentTarget.style.background = 'transparent';
-    e.currentTarget.style.color = getColorsByModo(modo).base;
-  }}
-  on:click={() => dispatch("cancelar")}
->
-  Cancelar
-</button>
-{/if}
-
+          <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+          <button
+            type="button"
+            class="px-4 py-2 rounded font-medium transition-colors ml-2"
+            style="
+              background: transparent;
+              color: {getColorsByModo(modo).base};
+              border: 1px solid {getColorsByModo(modo).base};
+            "
+            on:mouseover={(e) => {
+              e.currentTarget.style.background = getColorsByModo(modo).base;
+              e.currentTarget.style.color = '#fff';
+            }}
+            on:mouseout={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = getColorsByModo(modo).base;
+            }}
+            on:click={() => dispatch("cancelar")}
+          >
+            Cancelar
+          </button>
+          {/if}
         </div>
-
       </form>
     </div>
   </div>
@@ -199,6 +197,4 @@ function getColorsByModo(modo) {
 .ingreso-input { background-color: #2b3242; color: #fff; border-radius: 6px; border: 1px solid #777; padding: 10px 16px; font-size: 1rem; }
 .ingreso-input:focus { border-color: #3585fd; }
 .ingreso-btn-actions { grid-column: span 2; display: flex; justify-content: flex-end; gap: 18px; margin-top: 8px; }
-
-
 </style>

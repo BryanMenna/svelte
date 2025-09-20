@@ -40,8 +40,15 @@ let tituloActual = "Presupuesto";
 // Filtrado y paginación
 $: registrosFiltrados = registros.filter(r => {
   let coincideAnio = filtroAnio === "todos" || r.anio.toString() === filtroAnio;
-  let coincideVigencia = r.fecha_vig.includes(filtro);
-  return coincideAnio && (filtro === "" || coincideVigencia);
+   // Normaliza texto de búsqueda
+  const busqueda = filtro.toLowerCase();
+
+  // Filtra por fecha_vig o número de ordenanza
+  const coincideTexto = 
+    r.fecha_vig.toLowerCase().includes(busqueda) || 
+    String(r.numero).toLowerCase().includes(busqueda);
+
+  return coincideAnio && (busqueda === "" || coincideTexto);
 });
 $: totalPages = Math.max(Math.ceil(registrosFiltrados.length / itemsPerPage), 1);
 $: registrosPaginados = registrosFiltrados.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -121,25 +128,23 @@ function prepararAlta() {
   const fechaClave = `01/01/${anio}`;
   const existe = registros.some(r => 
     r.fecha_vig === fechaClave || 
-    r.fecha_vig === `${anio}-01-01` || 
-    r.fecha_vig === `01/01/${anio}`
+    r.fecha_vig === `${anio}-01-01`
   );
-
-  // Siempre cargo las 4 opciones
-  opcionesTipo = [...todasOpciones];
 
   if (!existe) {
     // 🔹 Primer presupuesto del año
-    formData.tipo = "Anual"; // default
+    opcionesTipo = ["Anual", "Reconducido"];
+    formData.tipo = "Anual";
     formData.fecha_vig = `${anio}-01-01`;
     formData.fecha_pro = `${anio}-01-01`;
 
     minVigencia = `${anio}-01-01`;
     minPromulgacion = `${anio}-01-01`;
     maxFecha = `${anio}-01-01`;
-
   } else {
-    // 🔹 Ya existe presupuesto inicial
+    // 🔹 Ya existe inicial
+    opcionesTipo = ["Anual", "Compensación", "Rectificación"];
+
     const registrosAnio = registros.filter(r => r.anio == anio);
 
     const ultimaVig = registrosAnio
@@ -154,11 +159,12 @@ function prepararAlta() {
     minPromulgacion = addDiasISO(ultimaPro, 1);
     maxFecha = `${anio}-12-31`;
 
-    formData.tipo = "Compensación"; // default cuando ya hay uno
+    formData.tipo = "Compensación";
     formData.fecha_vig = minVigencia;
     formData.fecha_pro = minPromulgacion;
   }
 }
+
 
 
 
@@ -175,11 +181,14 @@ function editarRegistro(r) {
   modo = "editar";
   formData = {
     ...r,
-    numero: masked_cod(String(r.numero || '').replace(/\D/g, '')),
     fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
     fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
   };
-  prepararAlta();
+
+  // ❌ no llamar prepararAlta()
+  // ✅ usar directamente las fechas del registro
+  opcionesTipo = [...todasOpciones]; // o incluso dejar fijo según tu lógica
+
   mostrarFormulario = true;
   mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
 }
@@ -191,10 +200,14 @@ function verRegistro(r) {
     fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
     fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
   };
-  prepararAlta();
+
+  // ❌ no prepararAlta()
+  opcionesTipo = [...todasOpciones];
+
   mostrarFormulario = true;
   mostrarToast({ mensaje: `Viendo presupuesto ${r.numero}`, tipo: "success" });
 }
+
 
 function abrirIngresos(r) {
   ingresosIdPresu = r.id_presu;
@@ -234,7 +247,7 @@ export async function guardarPresupuesto(formData, modo) {
     const data = {
       id_presu: formData.id_presu ?? null,
       tipo: formData.tipo,
-      numero: formData.numero,
+      numero:  parseInt(formData.numero, 10),
       fecha_vig: formData.fecha_vig,
       fecha_pro: formData.fecha_pro
     };
@@ -299,17 +312,19 @@ onMount(() => {
 // Máscara de códigos de partida
 export let picIG = "9.9.99.99.99"; // ejemplo
 function masked_cod(partIN) {
+  if (!partIN) return "";
   let posPart = 0;
   let resultado = "";
-  for (let i = 0; i < picIG.length && posPart < partIN.length; i++) {
+  for (let i = 0; i < picIG.length; i++) {
     if (picIG[i] === ".") resultado += ".";
     else {
-      resultado += partIN[posPart];
-      posPart++;
+      if (posPart < partIN.length) resultado += partIN[posPart++];
+      else resultado += "0"; // rellena con 0 si falta
     }
   }
   return resultado;
 }
+
 
 export function getPadre(partIN) {
   const conMascara = masked_cod(partIN);
@@ -331,6 +346,8 @@ function prepararEliminar(r) {
 }
 import { coloresModulo } from '$lib/utils/coloresModulo.js';
 let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
+
+
 
 </script>
 
@@ -366,7 +383,7 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
       {cargarRegistros}
     />
   {:else}    
- <div class="w-full flex items-center justify-center mt-8 mb-8">
+ <div class="w-full flex items-center justify-center mt-4 mb-4">
   <h1
     class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg"
     style="background: linear-gradient(90deg, {coloresModulo[moduloActual].start}, {coloresModulo[moduloActual].end});"
@@ -459,7 +476,7 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
 <button
   class="text-red-500 hover:scale-110 disabled:opacity-40"
   title="Eliminar"
-  disabled={r !== registrosFiltrados[registrosFiltrados.length - 1]}
+  disabled={r.id_presu !== registros[registros.length - 1]?.id_presu}
   on:click={() => prepararEliminar(r)}
 >
   <Trash2 class="w-4.3 h-5" />
@@ -470,7 +487,7 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
 <button
   class="text-blue-500 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
   title="Editar"
-  disabled={r !== registrosFiltrados[registrosFiltrados.length - 1]}
+  disabled={r.id_presu !== registros[registros.length - 1]?.id_presu}
   on:click={() => {
     modo = "editar";
     formData = {

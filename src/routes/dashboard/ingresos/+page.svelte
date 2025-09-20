@@ -3,7 +3,7 @@
 import FormularioIngreso from '../../../lib/components/FormularioIngreso.svelte';
 import EgresosModal from '../egresos/+page.svelte'; 
 import { Pencil, Trash2, Eye, DollarSign, Plus, FileText, Search } from 'lucide-svelte';
-import { masked_cod, formatCurrency } from '$lib/utils/format.js';
+import { formatCurrency } from '$lib/utils/format.js';
 import { mostrarToast } from '$lib/utils/mostrarToast.js';
 
 export let ingresos = [];
@@ -47,12 +47,15 @@ let egresos = [];
 let egresosTitulo = "";
 
 // Abrir egresos usando el ID del presupuesto
+// Abrir egresos usando el ID del presupuesto
+// Abrir egresos usando el ID del presupuesto
 async function abrirEgresos() {
   try {
     console.log("IDPresu recibido:", ingresosIdPresu);
     if (!ingresosIdPresu) throw new Error("IDPresu no definido");
 
-    const res = await fetch(`/api/egresos/${ingresosIdPresu}`);
+    // ✅ Ahora va con query string
+    const res = await fetch(`/api/egresos?idPresu=${ingresosIdPresu}`);
     if (!res.ok) throw new Error("Error al cargar egresos");
     egresos = await res.json();
 
@@ -65,6 +68,7 @@ async function abrirEgresos() {
     egresos = [];
   }
 }
+
 
 function cerrarEgresos() {
   mostrarEgresos = false;
@@ -103,11 +107,51 @@ function cerrarModal() {
   modalIngreso = { Codigo: '', Detalle: '', Presu: '', IT: '' };
 }
 
-function guardarIngresoModal() {
-  modalIngreso = null;
-  modoModal = null;
-  mostrarToast({ mensaje: "✅ Ingreso guardado con éxito", tipo: "success" });
+async function guardarIngresoModal(ingActualizado) {
+  try {
+    let res;
+    const payload = { ...ingActualizado, IDPresu: ingresosIdPresu };
+
+    if (modoModal === 'alta') {
+      res = await fetch('/api/ingresos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else if (modoModal === 'modificar' || modoModal === 'presu') {
+      res = await fetch('/api/ingresos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else if (modoModal === 'baja') {
+      res = await fetch('/api/ingresos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (!res.ok) throw new Error(await res.text());
+
+    // Refrescar
+    const lista = await fetch(`/api/ingresos?idPresu=${ingresosIdPresu}`);
+    ingresos = await lista.json();
+
+    mostrarToast({ mensaje: "✅ Cambios guardados en BD", tipo: "success" });
+  } catch (err) {
+    mostrarToast({ mensaje: "❌ Error actualizando en BD", tipo: "danger" });
+    console.error(err);
+  } finally {
+    modalIngreso = null;
+    modoModal = null;
+  }
 }
+
+
+
+
+
 
 function abrirFormularioIngreso(ing, modo = 'consulta') {
   modalIngreso = { ...ing };
@@ -125,6 +169,21 @@ function verIngreso(ing) {
 $: ingresos, currentPageIng = 1;
 
 import { coloresModulo } from '$lib/utils/coloresModulo.js';
+
+// svelte-ignore export_let_unused
+export let picIG = "9.9.99.99.99";
+
+export function masked_cod(cod) {
+  if (!cod) return "⚠️ Sin código";
+  cod = String(cod);
+  let longitud = cod.length;
+
+  // aseguramos que el repeat nunca sea negativo
+  let asteriscos = Math.max(0, longitud - 2);
+  return "*".repeat(asteriscos) + cod.slice(-2);
+}
+
+
 </script>
 
 
@@ -142,6 +201,8 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
 
   
   <!-- 🔹 Bloque buscador / nuevo / pdf / año -->
+ {#if !modalIngreso && !modoModal}
+  <!-- 🔹 Bloque buscador / nuevo / pdf -->
   <div class="w-full flex items-center my-4 justify-between">
     <div class="flex items-center gap-3">
       <!-- Input buscar -->
@@ -158,13 +219,16 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
 
       <!-- Botón agregar presupuesto -->
       <button 
-        class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-        style="background-color: #21A9FD; width: 32px; height: 32px;"
-        title="Nuevo presupuesto"
-        on:click={agregarPresupuesto}
-      >
-        <Plus class="w-6 h-6" />
-      </button>
+  class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+  style="background-color: #21A9FD; width: 32px; height: 32px;"
+  title="Nuevo Ingresos"
+  on:click={() => {
+    abrirFormularioIngreso({ Codigo: '', Detalle: '', Presu: 0, IT: '' }, 'alta');
+    tituloIngreso = "Nuevo Ingresos";   // 🔹 Cambia el título dinámico
+  }}
+>
+  <Plus class="w-6 h-6" />
+</button>
 
       <!-- Botón PDF -->
       <button 
@@ -176,20 +240,9 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
         <FileText class="w-5 h-5" />
       </button>
     </div>
-
-    <!-- Selector de año -->
-    <div class="flex items-center">
-      <label for="anio" class="text-white mr-2">Año:</label>
-      <div class="select-container">
-        <select id="anio" bind:value={filtroAnio} on:change={cambiarAnio}>
-          <option value="todos">Todos</option>
-          {#each anios as anio}
-            <option value={anio}>{anio}</option>
-          {/each}
-        </select>
-      </div>
-    </div>
   </div>
+{/if}
+
   <!-- 🔹 Fin bloque buscador -->
 
   <!-- Botones navegación -->
@@ -243,7 +296,7 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
     class:font-bold={ing.IT.toUpperCase() === 'TÍTULO'}
     class:italic={ing.IT.toUpperCase() === 'TÍTULO'}
   >
-    {masked_cod(ing.Codigo)}
+    {masked_cod(String(ing.Codigo))}
   </span>
 </td>
 
@@ -353,6 +406,7 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
       <div class="mt-6">
         <FormularioIngreso
           bind:ingreso={modalIngreso}
+          picIG={picIG}
           modo={modoModal}
           onGuardar={guardarIngresoModal}
           onCancelar={() => {
@@ -371,6 +425,7 @@ import { coloresModulo } from '$lib/utils/coloresModulo.js';
 {#if mostrarEgresos}
   <EgresosModal
     {mostrarEgresos}
+    egresosIdPresu={ingresosIdPresu} 
     {egresos}
     {cerrarEgresos}
     egresosTitulo={egresosTitulo}
@@ -426,11 +481,7 @@ table, th, td {
 th, td {
   padding: 8px 12px;
 }
-select {
-    background-color: #323a49;
-    color: white;
-    border-radius: 5px;
-}
+
 .titulo-ingresos .subtitulo {
   font-style: italic; /* cursiva */
   font-weight: 700;   /* negrita */
