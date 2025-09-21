@@ -39,6 +39,39 @@ function onNumeroInput(e) {
 async function handleSubmit(e) {
   e.preventDefault();
 
+  // 🔹 Validaciones adicionales
+  if (!formData.tipo) {
+    mostrarToast({
+      mensaje: "Debe seleccionar un tipo de presupuesto",
+      tipo: "danger"
+    });
+    return;
+  }
+
+  if (!formData.numero || isNaN(parseInt(formData.numero))) {
+    mostrarToast({
+      mensaje: "El número de ordenanza es obligatorio y debe ser numérico",
+      tipo: "danger"
+    });
+    return;
+  }
+
+  if (!formData.fecha_vig || !/^\d{4}-\d{2}-\d{2}$/.test(formData.fecha_vig)) {
+    mostrarToast({
+      mensaje: "La fecha de Vigencia es obligatoria y debe estar en formato YYYY-MM-DD",
+      tipo: "danger"
+    });
+    return;
+  }
+
+  if (!formData.fecha_pro || !/^\d{4}-\d{2}-\d{2}$/.test(formData.fecha_pro)) {
+    mostrarToast({
+      mensaje: "La fecha de Promulgación es obligatoria y debe estar en formato YYYY-MM-DD",
+      tipo: "danger"
+    });
+    return;
+  }
+
   const fechaV = new Date(formData.fecha_vig);
   const fechaP = new Date(formData.fecha_pro);
 
@@ -46,7 +79,7 @@ async function handleSubmit(e) {
   const limiteMinPro = new Date(minPromulgacion);
   const limiteMax = new Date(`${anioSeleccionado}-12-31`);
 
-  // Validación de Vigencia
+  // Validación de rango Vigencia
   if (fechaV < limiteMinVig || fechaV > limiteMax) {
     mostrarToast({
       mensaje: `⚠️ La fecha de Vigencia debe estar entre ${minVigencia} y ${maxFecha}.`,
@@ -55,7 +88,7 @@ async function handleSubmit(e) {
     return;
   }
 
-  // Validación de Promulgación
+  // Validación de rango Promulgación
   if (fechaP < limiteMinPro || fechaP > limiteMax) {
     mostrarToast({
       mensaje: `⚠️ La fecha de Promulgación debe estar entre ${minPromulgacion} y ${maxFecha}.`,
@@ -89,9 +122,8 @@ async function handleSubmit(e) {
     });
   }
 }
-
-
 </script>
+
 
 <div class="flex items-center justify-center min-h-screen">
 <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 ">

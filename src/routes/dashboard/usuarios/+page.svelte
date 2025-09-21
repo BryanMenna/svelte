@@ -63,7 +63,7 @@ $: usuariosFiltrados = usuarios.filter(u => u.name.toLowerCase().includes(filtro
 
 //  Paginación
 let currentPage = 1;
-let itemsPerPage = 5; // cantidad de registros por página
+let itemsPerPage = 4; // cantidad de registros por página
 $: totalPages = Math.ceil(usuariosFiltrados.length / itemsPerPage);
 $: usuariosPaginados = usuariosFiltrados.slice(
     (currentPage - 1) * itemsPerPage,
