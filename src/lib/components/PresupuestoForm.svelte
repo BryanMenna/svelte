@@ -12,23 +12,15 @@ export let getPadre;
 export let guardarPresupuesto;
 export let cerrarFormulario;
 export let cargarRegistros;
+export let mostrarToast;
 // svelte-ignore export_let_unused
 export let onCancelar;
 // svelte-ignore export_let_unused
 export let picIG = "9.9.99.99.99";
+export let anioSeleccionado;
 
 // 🔹 estado local para hover del botón Cancelar
 let hoverCancelar = false;
-
-// 🔹 función para colores por modo
-function getColorsByModo(m) {
-  return {
-    alta: { hover: "#450786" },
-    editar: { hover: "#21a9fd" },
-    eliminar: { hover: "#fb2c36" },
-    ver: { hover: "#666" }
-  }[m] || { hover: "#fff" };
-}
 
 // Colores dinámicos según modo
 $: colorHeader = modo === "alta" ? "#450786" 
@@ -39,65 +31,68 @@ $: colorHeader = modo === "alta" ? "#450786"
 $: colorBoton = colorHeader;
 
 function onNumeroInput(e) {
-    const digits = String(e.target.value || '').replace(/\D/g, '');
-    // masked_cod espera la cadena sin separadores y aplica picIG
-    formData.numero = masked_cod(digits);
+  const digits = String(e.target.value || '').replace(/\D/g, '');
+  // masked_cod espera la cadena sin separadores y aplica picIG
+  formData.numero = masked_cod(digits);
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+
+  const fechaV = new Date(formData.fecha_vig);
+  const fechaP = new Date(formData.fecha_pro);
+
+  const limiteMinVig = new Date(minVigencia);
+  const limiteMinPro = new Date(minPromulgacion);
+  const limiteMax = new Date(`${anioSeleccionado}-12-31`);
+
+  // Validación de Vigencia
+  if (fechaV < limiteMinVig || fechaV > limiteMax) {
+    mostrarToast({
+      mensaje: `⚠️ La fecha de Vigencia debe estar entre ${minVigencia} y ${maxFecha}.`,
+      tipo: "danger"
+    });
+    return;
   }
 
-  async function handleSubmit(e) {
-  e.preventDefault(); 
-  const result = await guardarPresupuesto(formData, modo);
-  if (result) {
-    cerrarFormulario();     // 🔹 cerrar modal
-    await cargarRegistros(); // 🔹 refrescar tabla
+  // Validación de Promulgación
+  if (fechaP < limiteMinPro || fechaP > limiteMax) {
+    mostrarToast({
+      mensaje: `⚠️ La fecha de Promulgación debe estar entre ${minPromulgacion} y ${maxFecha}.`,
+      tipo: "danger"
+    });
+    return;
+  }
+
+  try {
+    const result = await guardarPresupuesto(formData, modo);
+    if (result) {
+      mostrarToast({
+        mensaje: modo === "alta"
+          ? "Presupuesto creado con éxito ✅"
+          : modo === "editar"
+          ? "Presupuesto actualizado con éxito ✏️"
+          : modo === "eliminar"
+          ? "Presupuesto eliminado ❌"
+          : "Operación completada",
+        tipo: "success"
+      });
+
+      cerrarFormulario();
+      await cargarRegistros();
+    }
+  } catch (err) {
+    console.error("❌ Error en handleSubmit:", err);
+    mostrarToast({
+      mensaje: "Error al guardar el presupuesto",
+      tipo: "danger"
+    });
   }
 }
 
-let todasOpciones = ["Anual", "Reconducido", "Compensación", "Rectificación"];
 
-/**
- * Prepara valores iniciales al dar de alta un presupuesto
- */
-export function prepararAlta(registros, anio) {
-  // Buscar si existe presupuesto inicial del 01/01/YYYY
-  let inicial = registros.find(r => r.fecha_vig?.startsWith(`${anio}-01-01`));
-
-  if (!inicial) {
-    // 👉 No existe presupuesto inicial
-    // Opciones permitidas
-    opcionesTipo = ["Anual", "Reconducido"];
-
-    // Fechas fijas 01/01/YYYY
-    formData.fecha_vig = `${anio}-01-01`;
-    formData.fecha_pro = `${anio}-01-01`;
-
-    // Rango fijo (solo 01/01)
-    minVigencia = `${anio}-01-01`;
-    minPromulgacion = `${anio}-01-01`;
-    maxFecha = `${anio}-01-01`;
-  } else {
-    // 👉 Ya existe inicial
-    // Opciones permitidas
-    opcionesTipo = ["Anual", "Compensación", "Rectificación"];
-
-    // Buscar última fecha de vigencia y promulgación para rangos
-    let ultVig = registros.reduce(
-      (a, b) => (a.fecha_vig > b.fecha_vig ? a : b),
-      registros[0]
-    ).fecha_vig;
-
-    let ultPro = registros.reduce(
-      (a, b) => (a.fecha_pro > b.fecha_pro ? a : b),
-      registros[0]
-    ).fecha_pro;
-
-    // Validación de rangos
-    minVigencia = ultVig;
-    minPromulgacion = ultPro;
-    maxFecha = `${anio}-12-31`;
-  }
-}
 </script>
+
 <div class="flex items-center justify-center min-h-screen">
 <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 ">
   <!-- 🔹 Encabezado -->
@@ -124,19 +119,20 @@ export function prepararAlta(registros, anio) {
     <form on:submit={handleSubmit} class="grid grid-cols-1 md:grid-cols-2 gap-4 ">
       
       <!-- Tipo -->
-      <div>
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm text-gray-300 mb-1">Tipo:</label>
-        <select
-  bind:value={formData.tipo}
-  disabled={modo !== "alta" || modo === "eliminar"}
-   class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
->
-  {#each opcionesTipo as opcion}
-    <option value={opcion}>{opcion}</option>
-  {/each}
-</select>
-      </div>
+<div>
+  <!-- svelte-ignore a11y_label_has_associated_control -->
+  <label class="block text-sm text-gray-300 mb-1">Tipo:</label>
+  <select
+    bind:value={formData.tipo}
+    disabled={modo !== "alta"}  
+    class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
+  >
+    {#each opcionesTipo as opcion}
+      <option value={opcion}>{opcion}</option>
+    {/each}
+  </select>
+</div>
+
 
       <!-- Número -->
 <div>
@@ -151,34 +147,22 @@ export function prepararAlta(registros, anio) {
   />
 </div>
 
+<!-- Fecha Vigencia -->
+<input
+  type="date"
+  bind:value={formData.fecha_vig}
+  class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
+  disabled={modo === "ver" || modo === "eliminar" || formData.fechasBloqueadas}
+/>
 
-      <!-- Fecha Vigencia -->
-      <div>
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm text-gray-300 mb-1">Fecha Vigencia:</label>
-        <input
-          type="date"
-          bind:value={formData.fecha_vig}
-          class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
-          min={minVigencia}
-          max={maxFecha}
-          disabled={modo === "ver" || modo === "eliminar" || (opcionesTipo.length === 2)}
-        />
-      </div>
+<!-- Fecha Promulgación -->
+<input
+  type="date"
+  bind:value={formData.fecha_pro}
+  class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
+  disabled={modo === "ver" || modo === "eliminar" || formData.fechasBloqueadas}
+/>
 
-      <!-- Fecha Promulgación -->
-      <div>
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm text-gray-300 mb-1">Fecha Promulgación:</label>
-        <input
-          type="date"
-          bind:value={formData.fecha_pro}
-          class="w-full bg-[#2a2f3a] text-white rounded-md px-3 py-2 text-sm sm:text-base"
-          min={minPromulgacion}
-          max={maxFecha}
-          disabled={modo === "ver" || modo === "eliminar" || (opcionesTipo.length === 2)}
-        />
-      </div>
 
       <!-- Botones -->
       {#if modo !== "ver"}

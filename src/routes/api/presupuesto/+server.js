@@ -2,6 +2,7 @@
 import { pool } from '$lib/db.js';
 import { json } from '@sveltejs/kit';
 
+// ➡️ Listar presupuestos
 export async function GET() {
   try {
     // @ts-ignore
@@ -18,7 +19,7 @@ export async function GET() {
     `);
     return json(rows);
   } catch (err) {
-    console.error('Error al obtener presupuestos:', err);
+    console.error('❌ Error al obtener presupuestos:', err);
     // @ts-ignore
     return json({ error: err.message }, { status: 500 });
   }
@@ -30,18 +31,20 @@ export async function POST({ request }) {
   try {
     const { tipo, numero, fecha_vig, fecha_pro } = await request.json();
 
+    if (!tipo || !numero || !fecha_vig || !fecha_pro) {
+      return json({ error: "Faltan datos obligatorios" }, { status: 400 });
+    }
+
     // @ts-ignore
     const [result] = await pool.execute(
-  `UPDATE ct_part_eg SET Detalle=?, Presu=? WHERE IDPresu=? AND Codigo=?`,
-  // @ts-ignore
-  [Detalle, Presu, IDPresu, Codigo]
-);
-console.log("Filas afectadas:", result.affectedRows);
-
+      `INSERT INTO ct_presu (Tipo, Numero, FechaVig, FechaPro)
+       VALUES (?, ?, ?, ?)`,
+      [tipo, numero, fecha_vig, fecha_pro]
+    );
 
     return json({ id_presu: result.insertId, tipo, numero, fecha_vig, fecha_pro });
   } catch (err) {
-    console.error('Error al crear presupuesto:', err);
+    console.error('❌ Error al crear presupuesto:', err);
     // @ts-ignore
     return json({ error: err.message }, { status: 500 });
   }
@@ -63,7 +66,7 @@ export async function PUT({ request }) {
 
     return json({ success: true });
   } catch (err) {
-    console.error('Error al editar presupuesto:', err);
+    console.error('❌ Error al editar presupuesto:', err);
     // @ts-ignore
     return json({ error: err.message }, { status: 500 });
   }
@@ -74,11 +77,13 @@ export async function PUT({ request }) {
 export async function DELETE({ request }) {
   try {
     const { id_presu } = await request.json();
+
     // @ts-ignore
     await pool.execute(`DELETE FROM ct_presu WHERE ID = ?`, [id_presu]);
+
     return json({ success: true });
   } catch (err) {
-    console.error('Error al eliminar presupuesto:', err);
+    console.error('❌ Error al eliminar presupuesto:', err);
     // @ts-ignore
     return json({ error: err.message }, { status: 500 });
   }

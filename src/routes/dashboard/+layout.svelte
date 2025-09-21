@@ -169,7 +169,7 @@ function irARuta(ruta) {
   </div>
 {/if}
 
-<div class="flex pt-14 min-h-screen" style="background: transparent;">
+<div  class="flex pt-24 min-h-screen" style="background: transparent;">
   <!-- SIDEBAR -->
  <aside
   class="fixed top-14 left-0 w-64 border-r border-surface-500 p-4 transition-transform duration-300 z-40 text-[#fff] 
@@ -246,14 +246,16 @@ function irARuta(ruta) {
   </aside>
 
   <!-- MAIN -->
-   <main
-  class="flex-1 h-[calc(100vh-3.5rem)] p-8 transition-all duration-300"
+<!-- MAIN -->
+<main
+  class="flex-1 p-8 transition-all duration-300"
   class:ml-64={sidebarVisible}
   class:ml-0={!sidebarVisible}
-  style="background-color: #1d222b; overflow: hidden;"
+  style="background-color: #1d222b;"
 >
   <slot />
 </main>
+
 </div>
 
 <style>
@@ -287,10 +289,6 @@ aside::-webkit-scrollbar-thumb:hover {
 aside {
   scrollbar-width: thin;
    scrollbar-color: #101318 #1c2129;
-}
-div.flex.pt-14.min-h-screen {
-  max-width: 100vw;
-  overflow-x: hidden;
 }
 
 main {

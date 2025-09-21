@@ -125,28 +125,33 @@ function prepararAlta() {
   const anio = filtroAnio !== "todos" ? parseInt(filtroAnio) : new Date().getFullYear();
   anioSeleccionado = anio;
 
-  const fechaClave = `01/01/${anio}`;
-  const existe = registros.some(r => 
-    r.fecha_vig === fechaClave || 
-    r.fecha_vig === `${anio}-01-01`
+  // 🔎 Buscar si ya existe un presupuesto inicial del 01/01/YYYY
+  const existeInicial = registros.some(r => 
+    r.fecha_vig === `01/01/${anio}` || r.fecha_vig === `${anio}-01-01`
   );
 
-  if (!existe) {
-    // 🔹 Primer presupuesto del año
+  if (!existeInicial) {
+    // 👉 Caso 1: NO existe inicial
     opcionesTipo = ["Anual", "Reconducido"];
     formData.tipo = "Anual";
-    formData.fecha_vig = `${anio}-01-01`;
-    formData.fecha_pro = `${anio}-01-01`;
 
-    minVigencia = `${anio}-01-01`;
-    minPromulgacion = `${anio}-01-01`;
-    maxFecha = `${anio}-01-01`;
+    const fija = `${anio}-01-01`;
+    formData.fecha_vig = fija;
+    formData.fecha_pro = fija;
+
+    // Fechas fijas y bloqueadas
+    minVigencia = fija;
+    minPromulgacion = fija;
+    maxFecha = fija;
+
+    formData.fechasBloqueadas = true;
   } else {
-    // 🔹 Ya existe inicial
+    // 👉 Caso 2: SÍ existe inicial
     opcionesTipo = ["Anual", "Compensación", "Rectificación"];
 
     const registrosAnio = registros.filter(r => r.anio == anio);
 
+    // Última Vigencia y Promulgación registradas en el año
     const ultimaVig = registrosAnio
       .map(r => parseFecha(r.fecha_vig, anio))
       .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
@@ -155,15 +160,29 @@ function prepararAlta() {
       .map(r => parseFecha(r.fecha_pro, anio))
       .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
 
-    minVigencia = addDiasISO(ultimaVig, 1);
-    minPromulgacion = addDiasISO(ultimaPro, 1);
+    // 🔹 Mínimo absoluto siempre = 02/01/YYYY
+    const minAbs = new Date(`${anio}-01-02`);
+
+    // Vigencia mínima = última vigencia o 02/01/YYYY (lo que sea más tarde)
+    const minVigDate = ultimaVig < minAbs ? minAbs : ultimaVig;
+
+    // Promulgación mínima = última promulgación o 02/01/YYYY (lo que sea más tarde)
+    const minProDate = ultimaPro < minAbs ? minAbs : ultimaPro;
+
+    // Guardamos los rangos como string ISO (yyyy-mm-dd)
+    minVigencia = addDiasISO(minVigDate, 0);
+    minPromulgacion = addDiasISO(minProDate, 0);
     maxFecha = `${anio}-12-31`;
 
+    // Valores iniciales para el formulario
     formData.tipo = "Compensación";
     formData.fecha_vig = minVigencia;
     formData.fecha_pro = minPromulgacion;
+
+    formData.fechasBloqueadas = false;
   }
 }
+
 
 
 
@@ -379,8 +398,10 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
       {getPadre}
       {guardarPresupuesto}
       {cerrarFormulario}
+      {mostrarToast}
       {picIG}
       {cargarRegistros}
+       anioSeleccionado={anioSeleccionado}
     />
   {:else}    
  <div class="w-full flex items-center justify-center mt-4 mb-4">

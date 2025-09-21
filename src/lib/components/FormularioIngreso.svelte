@@ -5,37 +5,109 @@ import { mostrarToast } from "$lib/utils/mostrarToast.js";
 
 export let modo = "alta"; // 'alta' | 'modificar' | 'baja' | 'consulta' | 'presu'
 export let ingreso = { Codigo: "", Detalle: "", Presu: 0, IT: "", TP: "" };
-// svelte-ignore export_let_unused
-export let picIG = "";
+export let picIG = "9.9.99.99.99";   // máscara de código
 export let onGuardar = () => {};
 export let onCancelar = () => {};
+export let ingresosIdPresu = null;   // ⚡ necesario para validar contra la BD
 
 const dispatch = createEventDispatcher();
 let errores = {};
 
-// Validaciones
-function validar() {
+// 🔹 Enmascarar el código
+function masked_cod(partIN) {
+  if (!partIN) return "";
+  let posPart = 0;
+  let resultado = "";
+  for (let i = 0; i < picIG.length && posPart < partIN.length; i++) {
+    if (picIG[i] === ".") {
+      resultado += ".";
+    } else {
+      resultado += partIN[posPart];
+      posPart++;
+    }
+  }
+  return resultado;
+}
+
+// 🔹 Obtener padre
+function getPadre(partIN) {
+  const conMascara = masked_cod(partIN);
+  if (!conMascara.includes(".")) return "";
+  const partes = conMascara.split(".");
+  partes.pop(); // saco el último nivel
+  return partes.join(".");
+}
+
+// 🔹 Formatear presupuesto
+function formatMoney(value) {
+  if (value === null || value === undefined || value === "") return "";
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2
+  }).format(value);
+}
+
+// 🔹 Validaciones
+// 🔹 Validaciones
+async function validar() {
   errores = {};
 
+  // ⚡ En alta
   if (modo === "alta") {
-    if (!ingreso.Codigo) errores.Codigo = "Debe ingresar un código";
-    if (!ingreso.Detalle) errores.Detalle = "Debe ingresar un detalle";
-    if (ingreso.Presu < 0) errores.Presu = "El presupuesto no puede ser negativo";
+    if (!ingreso.Codigo) {
+      errores.Codigo = "Debe ingresar un código";
+    } else {
+      // Verificar que no exista en BD
+      try {
+        const res = await fetch(`/api/ingresos?idPresu=${ingresosIdPresu}`);
+        if (res.ok) {
+          const lista = await res.json();
+          const existe = lista.some(item => String(item.Codigo) === String(ingreso.Codigo));
+          if (existe) {
+            errores.Codigo = "El código ya existe en este presupuesto";
+          }
+
+          // Verificar que tenga padre
+          const padre = getPadre(ingreso.Codigo);
+          if (!padre) {
+            errores.Codigo = "El código debe tener un padre válido";
+          } else {
+            // Revisar si el padre existe en la BD
+            const padreExiste = lista.some(item => masked_cod(item.Codigo) === padre);
+            if (!padreExiste) {
+              errores.Codigo = `El código padre (${padre}) no existe en este presupuesto`;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error validando código:", err);
+        mostrarToast({ mensaje: "Error validando código", tipo: "danger" });
+      }
+    }
   }
 
+  // ⚡ En baja: no se puede eliminar un TÍTULO
   if (modo === "baja" && ingreso.IT?.toUpperCase() === "TÍTULO") {
     errores.IT = "No se puede eliminar una cuenta Título";
   }
 
-  if (modo === "presu" && ingreso.Presu < 0) {
+  // ⚡ En todos los modos menos consulta: detalle obligatorio
+  if (!ingreso.Detalle && modo !== "consulta") {
+    errores.Detalle = "Debe ingresar un detalle";
+  }
+
+  // ⚡ En alta, modificar o presu: presupuesto >= 0
+  if ((modo === "alta" || modo === "modificar" || modo === "presu") && ingreso.Presu < 0) {
     errores.Presu = "El importe debe ser mayor o igual a 0";
   }
 
   return Object.keys(errores).length === 0;
 }
 
+
 async function guardar() {
-  if (!validar()) {
+  if (!(await validar())) {
     mostrarToast({ mensaje: "Errores en el formulario", tipo: "danger" });
     return;
   }
@@ -43,7 +115,7 @@ async function guardar() {
   dispatch("guardar", ingreso);
 }
 
-// 🔹 Colores dinámicos igual que egresos
+// 🔹 Colores dinámicos según modo
 function getColorsByModo(modo) {
   switch(modo){
     case 'alta': return { base: '#2e8b57', hover: '#256d45' };      // verde
@@ -69,7 +141,6 @@ function getColorsByModo(modo) {
   </div>
 
   <div class="modal-body">
-    <!-- Grid 2 columnas -->
     <div class="grid">
       <!-- Código -->
       <div class="campo">
@@ -77,10 +148,14 @@ function getColorsByModo(modo) {
         <label>Código:</label>
         <input
           type="text"
-          bind:value={ingreso.Codigo}
           placeholder="Ej: 9.9.99.99"
+          bind:value={ingreso.Codigo}
           disabled={modo !== "alta"}
+          on:input={(e) => ingreso.Codigo = e.target.value.replace(/\D/g, "")}
         />
+        {#if modo !== "alta"}
+          <small class="info">{masked_cod(ingreso.Codigo)}</small>
+        {/if}
         {#if errores.Codigo}<p class="error">{errores.Codigo}</p>{/if}
       </div>
 
@@ -107,47 +182,52 @@ function getColorsByModo(modo) {
           step="0.01"
           bind:value={ingreso.Presu}
           disabled={modo === "consulta" || modo === "baja"}
+          on:blur={(e) => e.target.value = formatMoney(ingreso.Presu)}
         />
         {#if errores.Presu}<p class="error">{errores.Presu}</p>{/if}
       </div>
 
-      <!-- Tipo de partida -->
-      <div class="campo">
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label>Tipo de partida:</label>
-        <input type="text" bind:value={ingreso.IT} disabled />
-      </div>
+      <!-- Tipo de partida: solo mostrar en baja / modificar / consulta -->
+      {#if modo !== "alta"}
+        <div class="campo">
+          <!-- svelte-ignore a11y_label_has_associated_control -->
+          <label>Tipo de partida:</label>
+          <input 
+            type="text" 
+            value={ingreso.IT?.toUpperCase() === "TÍTULO" ? "Título" : "Imputable"} 
+            disabled 
+          />
+        </div>
+      {/if}
     </div>
   </div>
 
   <!-- Footer botones -->
- <!-- Footer botones -->
-<div class="modal-footer">
-  {#if modo !== "consulta"}
+  <div class="modal-footer">
+    {#if modo !== "consulta"}
+      <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+      <button on:click={guardar} class="guardar"
+        style="background: {getColorsByModo(modo).base};"
+        on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
+        on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
+        {modo === "baja" ? "Eliminar" : "Guardar"}
+      </button>
+    {/if}
+
     <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-    <button on:click={guardar} class="guardar"
-      style="background: {getColorsByModo(modo).base};"
-      on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
-      on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
-      {modo === "baja" ? "Eliminar" : "Guardar"}
+    <button on:click={onCancelar} class="cancelar"
+      style="color: {getColorsByModo(modo).base}; border: 1px solid {getColorsByModo(modo).base};"
+      on:mouseover={(e) => {
+        e.currentTarget.style.background = getColorsByModo(modo).base;
+        e.currentTarget.style.color = '#fff';
+      }}
+      on:mouseout={(e) => {
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.color = getColorsByModo(modo).base;
+      }}>
+      Cancelar
     </button>
-  {/if}
-
-  <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-  <button on:click={onCancelar} class="cancelar"
-    style="color: {getColorsByModo(modo).base}; border: 1px solid {getColorsByModo(modo).base};"
-    on:mouseover={(e) => {
-      e.currentTarget.style.background = getColorsByModo(modo).base;
-      e.currentTarget.style.color = '#fff';
-    }}
-    on:mouseout={(e) => {
-      e.currentTarget.style.background = 'transparent';
-      e.currentTarget.style.color = getColorsByModo(modo).base;
-    }}>
-    Cancelar
-  </button>
-</div>
-
+  </div>
 </div>
 
 <style>
@@ -159,9 +239,7 @@ function getColorsByModo(modo) {
   width: 100%;
   max-width: none;
   margin: 0 auto;
-  height: auto;
 }
-
 .modal-header {
   color: white;
   padding: 14px 20px;
@@ -177,7 +255,6 @@ function getColorsByModo(modo) {
   font-size: 1.4rem;
   cursor: pointer;
 }
-
 .modal-body { padding: 24px; }
 .grid {
   display: grid;
@@ -197,7 +274,6 @@ function getColorsByModo(modo) {
   font-size: 1rem;
   border: 1px solid #777;
 }
-
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -224,7 +300,11 @@ function getColorsByModo(modo) {
   color: #f87171;
   margin-top: 2px;
 }
-
+.info {
+  font-size: 0.8rem;
+  color: #ccc;
+  margin-top: 4px;
+}
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
 }
