@@ -117,7 +117,7 @@ function getColorsByModo(modo) {
     case 'alta': return { base: '#2e8b57', hover: '#256d45' };      // verde
     case 'modificar': return { base: '#1e90ff', hover: '#187bcd' }; // azul
     case 'baja': return { base: '#c53030', hover: '#9b1c1c' };      // rojo
-    case 'consulta': return { base: '#6b7280', hover: '#565e64' };  // gris
+    case 'consulta': return { base: '#00c950', hover: 'bg-green-500' };  // gris
     default: return { base: '#fdc700', hover: '#d4a700' };          // amarillo
   }
 }
