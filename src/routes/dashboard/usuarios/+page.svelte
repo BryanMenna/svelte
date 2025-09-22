@@ -5,8 +5,7 @@ import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { onMount } from 'svelte';
 import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
 import FormularioUsuario from '$lib/components/FormularioUsuario.svelte';
-import FormularioPDF from "$lib/components/FormularioPDF.svelte";
-import { generarPDF } from "$lib/utils/pdfUtils.js";
+
 let usuarios = [];
 let filtro = "";
 
@@ -162,7 +161,6 @@ function formularioTitulo(acc) {
     if (acc === "editar") return "Editar Usuario";
     if (acc === "ver") return "Información del Usuario";
     if (acc === "borrar") return "Eliminar Usuario";
-    if (acc === "pdf") return "Generar Reporte en PDF";
     return "Nuevo Usuario";
 }
 
@@ -229,24 +227,6 @@ function descargarPDF() {
         tipo: "warning"
     });
 }
-
-function onClickPDF() {
-    usuario = { ...usuarioVacio };   // opcional, podés pasar datos vacíos
-    accionFormulario = "pdf";
-    mostrarTituloUsuario = false;
-    mostrarFormulario = true;
-     imprimirUsuario(usuarioLocal);
-}
-
-
-let usuarioLocal = {
-  rol: "",
-  areas: [],
-  status: "Activo",
-  hasta: "",
-};
-
-
 </script>
 
 <ToastContainer />
@@ -291,60 +271,50 @@ let usuarioLocal = {
        </button>
 
        <!-- Botón Descargar PDF -->
-     <button
-  class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-  style="background-color: #323a49; width: 35px; height: 35px;"
-  title="Abrir Formulario PDF"
-  onclick={onClickPDF}
->
-  <FileText class="w-5 h-5" />
-</button>
+       <button
+           class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+           style="background-color: #323a49; width: 35px; height: 35px;"
+           title="Descargar PDF"
+           onclick={descargarPDF}
+       >
+           <FileText class="w-5 h-5" />
+       </button>
    </div>
    {/if}
 
    <!-- Formulario -->
-   <!-- Formulario -->
-{#if mostrarFormulario}
-<section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
-    <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
-        <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
-        <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
-    </div>
+   {#if mostrarFormulario}
+   <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
+       <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
+           <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
+           <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
+       </div>
 
-    <div class="p-6 bg-[#212631] max-h-[70vh] overflow-y-auto">
-        
-        {#if accionFormulario === 'pdf'}
-            <!-- 🔹 Formulario PDF en archivo separado -->
-            <FormularioPDF onCerrar={cerrarFormulario} />
-        {:else}
-            <!-- 🔹 Formulario de usuarios -->
-            <FormularioUsuario 
-                {usuario} 
-                accionModal={accionFormulario}
-                disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
-                mostrarUsername={true}   
-                ordenAgregar={accionFormulario === 'nuevo'} 
-                on:submit={guardarUsuario}
-            />
-
-            <div class="flex justify-end gap-2 mt-4">
-                {#if accionFormulario === 'nuevo' || accionFormulario === 'editar'}
-                    <button type="submit" form="form-usuario" class={`px-4 py-2 rounded text-white ${colores.btn}`}>Guardar</button>
-                {/if}
-                {#if accionFormulario === 'borrar'}
-                    <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={eliminarUsuario}>Eliminar</button>
-                {/if}
-                {#if accionFormulario === 'ver'}
-                    <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={cerrarFormulario}>Cerrar</button>
-                {:else}
-                    <button class={`px-4 py-2 rounded border ${colores.outline}`} onclick={cerrarFormulario}>Cerrar</button>
-                {/if}
-            </div>
-        {/if}
-    </div>
-</section>
-{/if}
-
+       <div class="p-6 bg-[#212631] max-h-[70vh] overflow-y-auto">
+           <FormularioUsuario 
+               {usuario} 
+               accionModal={accionFormulario}
+               disabled={(accionFormulario === "ver" || accionFormulario === "borrar")} 
+               mostrarUsername={true}   
+               ordenAgregar={accionFormulario === 'nuevo'} 
+               on:submit={guardarUsuario}
+           />
+           <div class="flex justify-end gap-2 mt-4">
+               {#if accionFormulario === 'nuevo' || accionFormulario === 'editar'}
+                   <button type="submit" form="form-usuario" class={`px-4 py-2 rounded text-white ${colores.btn}`}>Guardar</button>
+               {/if}
+               {#if accionFormulario === 'borrar'}
+                   <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={eliminarUsuario}>Eliminar</button>
+               {/if}
+               {#if accionFormulario === 'ver'}
+                   <button class={`px-4 py-2 rounded text-white ${colores.btn}`} onclick={cerrarFormulario}>Cerrar</button>
+               {:else}
+                   <button class={`px-4 py-2 rounded border ${colores.outline}`} onclick={cerrarFormulario}>Cerrar</button>
+               {/if}
+           </div>
+       </div>
+   </section>
+   {/if}
 
    <!-- Tabla -->
    {#if !mostrarFormulario}

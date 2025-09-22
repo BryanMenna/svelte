@@ -298,11 +298,6 @@ main {
   padding-bottom: 4rem; /* espacio para paginación */
 }
 
-.contenedor {
-  width: 100%;
-  max-width: 1200px;   /* o el ancho máximo que quieras */
-  margin: 0 auto;      /* centrado */
-}
 
 
 </style>
