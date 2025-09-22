@@ -46,8 +46,7 @@ let mostrarEgresos = false;
 let egresos = [];
 let egresosTitulo = "";
 
-// Abrir egresos usando el ID del presupuesto
-// Abrir egresos usando el ID del presupuesto
+
 // Abrir egresos usando el ID del presupuesto
 async function abrirEgresos() {
   try {
@@ -80,7 +79,7 @@ let tituloIngreso = ingresosTitulo;
 let subtituloIngreso = "";
 
 // Paginación
-let itemsPerPageIng = 5;
+let itemsPerPageIng = 3;
 let currentPageIng = 1;
 $: totalPagesIng = Math.max(Math.ceil(ingresos.length / itemsPerPageIng), 1);
 $: ingresosPaginados = ingresos.slice(
@@ -197,8 +196,6 @@ export function masked_cod(cod) {
 
 
 <!-- Sección de ingresos -->
-<!-- Sección de ingresos -->
-<!-- Sección de ingresos -->
 {#if !mostrarEgresos}
   <!-- Título -->
   <div class="titulo-ingresos" style="background: linear-gradient(to right, {coloresModulo.egresos.start}, {coloresModulo.egresos.end});">
@@ -269,13 +266,14 @@ export function masked_cod(cod) {
         </button>
       </div>
 
-      <button 
-        class="px-4 py-2 " 
-        style="background: linear-gradient(90deg, {coloresModulo.egresos.start}, {coloresModulo.egresos.end});"
-        on:click={abrirEgresos}  
-      >
-         Ir a Egresos ➡
-      </button>
+     <button 
+  class="px-4 py-2 " 
+  style="background: linear-gradient(90deg, {coloresModulo.ingresos.start}, {coloresModulo.ingresos.end});"
+  on:click={abrirEgresos}  
+>
+   Ir a Egresos ➡
+</button>
+
     </div>
     {/if}
 

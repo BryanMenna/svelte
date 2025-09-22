@@ -10,7 +10,7 @@ import PresupuestoForm from '../../../lib/components/PresupuestoForm.svelte';
 let anios = [];
 let filtroAnio = "todos";
 let registros = [];
-let itemsPerPage = 4;
+let itemsPerPage = 3;
 let filtro = "";
 let currentPage = 1;
 
@@ -454,7 +454,7 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
       </div>
     </div>
 
-    <div class="w-full overflow-x-auto rounded-lg shadow-lg">
+    <div class="w-full overflow-x-auto rounded-lg shadow-lg ">
       <table class="w-full text-white rounded overflow-hidden" style="background-color: #212631;">
         <thead style="background-color: #323a49;">
           <tr>

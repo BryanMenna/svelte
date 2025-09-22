@@ -128,8 +128,8 @@ async function handleSubmit(e) {
 <div class="flex items-center justify-center min-h-screen">
 <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 ">
   <!-- 🔹 Encabezado -->
-  <div class="px-5 py-3 text-white font-semibold text-lg flex items-center justify-between"
-       style="background-color: {colorHeader}">
+  <div class="px-5 py-3 text-white font-semibold text-lg flex items-center justify-between sticky top-0 z-20"
+     style="background-color: {colorHeader}">
     <span class="uppercase">
       {modo === "alta"
         ? "Nuevo Presupuesto"

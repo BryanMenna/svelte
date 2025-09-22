@@ -102,7 +102,7 @@ let modoModalEgreso = null;
 
 // 🔹 Paginación
 let currentPage = 1;
-let itemsPerPage = 5;
+let itemsPerPage = 3;
 $: totalPages = Math.max(Math.ceil(egresos.length / itemsPerPage), 1);
 $: egresosPaginados = egresos.slice(
   (currentPage - 1) * itemsPerPage,
@@ -221,12 +221,13 @@ export function masked_cod(cod) {
       </button>
 
       <button 
-        class="px-4 py-2 " 
-        style="background: linear-gradient(90deg, {coloresModulo.ingresos.start}, {coloresModulo.ingresos.end});"
-        on:click={() => { cerrarEgresos(); }}
-      >
-        Ir a Ingresos ➡
-      </button>
+  class="px-4 py-2 " 
+  style="background: linear-gradient(90deg, {coloresModulo.egresos.start}, {coloresModulo.egresos.end});"
+  on:click={() => { cerrarEgresos(); }}
+>
+  Ir a Ingresos ➡
+</button>
+
     </div>
     {/if}
 

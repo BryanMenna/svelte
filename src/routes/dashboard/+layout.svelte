@@ -245,16 +245,18 @@ function irARuta(ruta) {
     {/each}
   </aside>
 
-  <!-- MAIN -->
 <!-- MAIN -->
+<!-- header ~64px -->
 <main
-  class="flex-1 p-8 transition-all duration-300"
+  class="flex-1 p-8 transition-all duration-300 fixed left-0 right-0 bottom-0 top-16 overflow-y-auto"
   class:ml-64={sidebarVisible}
   class:ml-0={!sidebarVisible}
-  style="background-color: #1d222b;"
+  style="background-color:#1d222b;"
 >
   <slot />
 </main>
+
+
 
 </div>
 
@@ -292,10 +294,14 @@ aside {
 }
 
 main {
-  overflow-x: auto; /* Permite scroll horizontal si el contenido se desborda */
-  -webkit-overflow-scrolling: touch; /* para suavizar scroll en iOS */
-  max-width: 100vw; /* para que no se salga de la pantalla */
-  box-sizing: border-box;
+  min-height: 100vh;
+  padding-bottom: 4rem; /* espacio para paginación */
+}
+
+.contenedor {
+  width: 100%;
+  max-width: 1200px;   /* o el ancho máximo que quieras */
+  margin: 0 auto;      /* centrado */
 }
 
 

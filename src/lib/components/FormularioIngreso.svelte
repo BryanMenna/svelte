@@ -34,7 +34,7 @@ function getPadre(partIN) {
   const conMascara = masked_cod(partIN);
   if (!conMascara.includes(".")) return "";
   const partes = conMascara.split(".");
-  partes.pop(); // saco el último nivel
+  partes.pop();
   return partes.join(".");
 }
 
@@ -49,7 +49,6 @@ function formatMoney(value) {
 }
 
 // 🔹 Validaciones
-// 🔹 Validaciones
 async function validar() {
   errores = {};
 
@@ -58,7 +57,6 @@ async function validar() {
     if (!ingreso.Codigo) {
       errores.Codigo = "Debe ingresar un código";
     } else {
-      // Verificar que no exista en BD
       try {
         const res = await fetch(`/api/ingresos?idPresu=${ingresosIdPresu}`);
         if (res.ok) {
@@ -73,7 +71,6 @@ async function validar() {
           if (!padre) {
             errores.Codigo = "El código debe tener un padre válido";
           } else {
-            // Revisar si el padre existe en la BD
             const padreExiste = lista.some(item => masked_cod(item.Codigo) === padre);
             if (!padreExiste) {
               errores.Codigo = `El código padre (${padre}) no existe en este presupuesto`;
@@ -105,7 +102,6 @@ async function validar() {
   return Object.keys(errores).length === 0;
 }
 
-
 async function guardar() {
   if (!(await validar())) {
     mostrarToast({ mensaje: "Errores en el formulario", tipo: "danger" });
@@ -121,191 +117,140 @@ function getColorsByModo(modo) {
     case 'alta': return { base: '#2e8b57', hover: '#256d45' };      // verde
     case 'modificar': return { base: '#1e90ff', hover: '#187bcd' }; // azul
     case 'baja': return { base: '#c53030', hover: '#9b1c1c' };      // rojo
-    case 'consulta': return { base: '#00c950', hover: '#028c46' };  // verde claro
+    case 'consulta': return { base: '#6b7280', hover: '#565e64' };  // gris
     default: return { base: '#fdc700', hover: '#d4a700' };          // amarillo
   }
 }
+
+function getTipoIT(it) {
+  const txt = (it || '').toLowerCase();
+  return (txt === 'título' || txt === 'titulo') ? 'Título' : 'Imputable';
+}
 </script>
 
-<!-- Contenedor principal -->
-<div class="modal">
-  <div class="modal-header" style="background: {getColorsByModo(modo).base}">
-    <h3>
-      {modo === "alta" ? "ALTA PARTIDA DE INGRESO" :
-       modo === "modificar" ? "EDITAR PARTIDA DE INGRESO" :
-       modo === "baja" ? "ELIMINAR PARTIDA DE INGRESO" :
-       modo === "consulta" ? "CONSULTA DE INGRESO" :
-       "ACTUALIZAR PRESUPUESTO"}
-    </h3>
-    <button class="cerrar" on:click={onCancelar}>×</button>
+<section class="w-full max-w-[1100px] rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mx-auto">
+  <!-- Encabezado -->
+  <div class="px-5 py-2 text-white font-normal text-lg flex items-center justify-between"
+       style="background: {getColorsByModo(modo).base}">
+    <span style="text-transform: uppercase;">
+      {modo === "alta" ? "Nueva Partida de Ingreso" :
+       modo === "modificar" ? "Editar Partida de Ingreso" :
+       modo === "baja" ? "Eliminar Partida de Ingreso" :
+       modo === "consulta" ? "Consulta de Ingreso" :
+       "Actualizar Presupuesto"}
+    </span>
+    <button class="text-white text-2xl px-2" on:click={onCancelar}>×</button>
   </div>
 
-  <div class="modal-body">
-    <div class="grid">
-      <!-- Código -->
-      <div class="campo">
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label>Código:</label>
-        <input
-          type="text"
-          placeholder="Ej: 9.9.99.99"
-          bind:value={ingreso.Codigo}
-          disabled={modo !== "alta"}
-          on:input={(e) => ingreso.Codigo = e.target.value.replace(/\D/g, "")}
-        />
-        {#if modo !== "alta"}
-          <small class="info">{masked_cod(ingreso.Codigo)}</small>
-        {/if}
-        {#if errores.Codigo}<p class="error">{errores.Codigo}</p>{/if}
-      </div>
+  <!-- Formulario -->
+  <form class="p-6 bg-[#2a2f3a] ingreso-form-grid" on:submit|preventDefault={guardar}>
+    
+    <!-- Código -->
+   <!-- Código -->
+<div class="ingreso-form-col">
+  <!-- svelte-ignore a11y_label_has_associated_control -->
+  <label class="ingreso-label">Código:</label>
 
-      <!-- Detalle -->
-      <div class="campo">
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label>Detalle:</label>
-        <input
-          type="text"
-          bind:value={ingreso.Detalle}
-          placeholder="Detalle del ingreso"
-          disabled={modo === "consulta" || modo === "baja"}
-        />
-        {#if errores.Detalle}<p class="error">{errores.Detalle}</p>{/if}
-      </div>
-
-      <!-- Presupuesto -->
-      <div class="campo">
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label>Presupuesto:</label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          bind:value={ingreso.Presu}
-          disabled={modo === "consulta" || modo === "baja"}
-          on:blur={(e) => e.target.value = formatMoney(ingreso.Presu)}
-        />
-        {#if errores.Presu}<p class="error">{errores.Presu}</p>{/if}
-      </div>
-
-      <!-- Tipo de partida: solo mostrar en baja / modificar / consulta -->
-      {#if modo !== "alta"}
-        <div class="campo">
-          <!-- svelte-ignore a11y_label_has_associated_control -->
-          <label>Tipo de partida:</label>
-          <input 
-            type="text" 
-            value={ingreso.IT?.toUpperCase() === "TÍTULO" ? "Título" : "Imputable"} 
-            disabled 
-          />
-        </div>
-      {/if}
-    </div>
-  </div>
-
-  <!-- Footer botones -->
-  <div class="modal-footer">
-    {#if modo !== "consulta"}
-      <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-      <button on:click={guardar} class="guardar"
-        style="background: {getColorsByModo(modo).base};"
-        on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
-        on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
-        {modo === "baja" ? "Eliminar" : "Guardar"}
-      </button>
-    {/if}
-
-    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-    <button on:click={onCancelar} class="cancelar"
-      style="color: {getColorsByModo(modo).base}; border: 1px solid {getColorsByModo(modo).base};"
-      on:mouseover={(e) => {
-        e.currentTarget.style.background = getColorsByModo(modo).base;
-        e.currentTarget.style.color = '#fff';
+  {#if modo === "alta"}
+    <input
+      type="text"
+      maxlength="8"
+      class="ingreso-input"
+      bind:value={ingreso.Codigo}
+      placeholder="Ej: 9.9.99.99"
+      style="font-family: monospace"
+      on:input={(e) => {
+        const raw = e.target.value.replace(/\D/g, ""); // solo dígitos
+        ingreso.Codigo = raw;
+        e.target.value = masked_cod(raw); // mostrar enmascarado
       }}
-      on:mouseout={(e) => {
-        e.currentTarget.style.background = 'transparent';
-        e.currentTarget.style.color = getColorsByModo(modo).base;
-      }}>
-      Cancelar
-    </button>
-  </div>
+    />
+  {:else}
+    <input
+      type="text"
+      class="ingreso-input"
+      value={masked_cod(ingreso.Codigo)}
+      disabled
+      style="font-family: monospace"
+    />
+  {/if}
+
+  {#if errores.Codigo}<p class="error">{errores.Codigo}</p>{/if}
 </div>
 
+
+    <!-- Detalle -->
+    <div class="ingreso-form-col">
+      <!-- svelte-ignore a11y_label_has_associated_control -->
+      <!-- svelte-ignore a11y_label_has_associated_control -->
+      <label class="ingreso-label">Detalle:</label>
+      <input type="text" class="ingreso-input"
+        bind:value={ingreso.Detalle}
+        placeholder="Detalle del ingreso"
+        disabled={modo === "consulta" || modo === "baja"} />
+      {#if errores.Detalle}<p class="error">{errores.Detalle}</p>{/if}
+    </div>
+
+    <!-- Presupuesto -->
+      <!-- svelte-ignore a11y_label_has_associated_control -->
+    <div class="ingreso-form-col">
+      <label class="ingreso-label">Presupuesto:</label>
+      <input type="number" step="0.01" min="0"
+        class="ingreso-input"
+        bind:value={ingreso.Presu}
+        placeholder="$ 0.00"
+        disabled={modo === "consulta" || modo === "baja"}
+        on:blur={(e) => e.target.value = formatMoney(ingreso.Presu)} />
+      {#if errores.Presu}<p class="error">{errores.Presu}</p>{/if}
+    </div>
+
+    <!-- Tipo de partida -->
+    {#if modo !== "alta"}
+      <div class="ingreso-form-col">
+        <!-- svelte-ignore a11y_label_has_associated_control -->
+        <!-- svelte-ignore a11y_label_has_associated_control -->
+        <label class="ingreso-label">Tipo de partida:</label>
+        <input type="text" class="ingreso-input"
+          value={getTipoIT(ingreso.IT)}
+          disabled />
+      </div>
+    {/if}
+
+    <!-- Botonera -->
+    <div class="ingreso-btn-actions">
+        <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+      {#if modo !== "consulta"}
+        <button type="submit"
+          class="px-4 py-2 rounded text-white font-medium transition"
+          style="background:{getColorsByModo(modo).base}"
+          on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
+          on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
+          {modo === "baja" ? "Eliminar" : "Guardar"}
+        </button>
+      {/if}
+      <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+      <button type="button" class="px-4 py-2 rounded font-medium ml-2"
+        style="border:1px solid {getColorsByModo(modo).base}; color:{getColorsByModo(modo).base}; background:transparent"
+        on:mouseover={(e) => {
+          e.currentTarget.style.background = getColorsByModo(modo).base;
+          e.currentTarget.style.color = "#fff";
+        }}
+        on:mouseout={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = getColorsByModo(modo).base;
+        }}
+        on:click={onCancelar}>
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>
+
 <style>
-.modal {
-  background: #2a2f3a;
-  border-radius: 8px;
-  overflow: hidden;
-  color: white;
-  width: 100%;
-  max-width: none;
-  margin: 0 auto;
-}
-.modal-header {
-  color: white;
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.modal-header h3 { margin: 0; font-size: 1rem; text-transform: uppercase; }
-.cerrar {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.4rem;
-  cursor: pointer;
-}
-.modal-body { padding: 24px; }
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  width: 100%;
-}
-.campo { display: flex; flex-direction: column; width: 100%; }
-.campo label { font-weight: bold; margin-bottom: 6px; }
-.campo input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 6px;
-  border: none;
-  background: #212631;
-  color: white;
-  font-size: 1rem;
-  border: 1px solid #777;
-}
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 14px 20px;
-}
-.guardar {
-  color: white;
-  padding: 10px 20px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-.cancelar {
-  background: transparent;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-.error {
-  font-size: 0.8rem;
-  color: #f87171;
-  margin-top: 2px;
-}
-.info {
-  font-size: 0.8rem;
-  color: #ccc;
-  margin-top: 4px;
-}
-@media (max-width: 768px) {
-  .grid { grid-template-columns: 1fr; }
-}
+.ingreso-form-grid { display:grid; grid-template-columns: repeat(2,1fr); gap:5px; }
+.ingreso-form-col { display:flex; flex-direction:column; }
+.ingreso-label { color:#fff; margin-bottom:5px; font-weight:500; }
+.ingreso-input { background:#2b3242; color:#fff; border:1px solid #777; border-radius:6px; padding:10px 16px; }
+.ingreso-btn-actions { grid-column: span 2; display:flex; justify-content:flex-end; gap:12px; margin-top:12px; }
+.error { font-size:0.8rem; color:#f87171; margin-top:2px; }
 </style>

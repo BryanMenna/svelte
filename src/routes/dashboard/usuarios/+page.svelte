@@ -5,7 +5,8 @@ import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { onMount } from 'svelte';
 import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
 import FormularioUsuario from '$lib/components/FormularioUsuario.svelte';
-
+import FormularioPDF from "$lib/components/FormularioPDF.svelte";
+import { generarPDF } from "$lib/utils/pdfUtils.js";
 let usuarios = [];
 let filtro = "";
 
@@ -14,7 +15,6 @@ let accionFormulario = "";
 let usuario = {};
 let tituloUsuario = "Usuarios";
 let mostrarTituloUsuario = true;
-
 
 const usuarioVacio = { 
     id: null, 
@@ -63,7 +63,7 @@ $: usuariosFiltrados = usuarios.filter(u => u.name.toLowerCase().includes(filtro
 
 //  Paginación
 let currentPage = 1;
-let itemsPerPage = 4; // cantidad de registros por página
+let itemsPerPage = 4;
 $: totalPages = Math.ceil(usuariosFiltrados.length / itemsPerPage);
 $: usuariosPaginados = usuariosFiltrados.slice(
     (currentPage - 1) * itemsPerPage,
@@ -139,9 +139,10 @@ function prepararUsuario(u) {
 // Cerrar formulario
 const cerrarFormulario = () => {
     mostrarFormulario = false;
-    tituloUsuario = "Usuarios"; // título general cuando no hay formulario
-    mostrarTituloUsuario = true; // mostrar título al estar formulario cerrado
+    tituloUsuario = "Usuarios";
+    mostrarTituloUsuario = true;
 };
+
 // Colores por acción
 function getColorClasses(acc) {
     if (acc === 'borrar') 
@@ -149,17 +150,9 @@ function getColorClasses(acc) {
     if (acc === 'ver') 
         return { header: 'bg-green-500', btn: 'bg-green-500 hover:bg-green-600', outline: 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white' };
     if (acc === 'editar') 
-        return { 
-            header: 'bg-[#21A9FD]',  
-            btn: 'bg-[#21A9FD] hover:bg-[#1b8fd6]',  
-            outline: 'border-[#21A9FD] text-[#21A9FD] hover:bg-[#21A9FD] hover:text-white' 
-        };
+        return { header: 'bg-[#21A9FD]', btn: 'bg-[#21A9FD] hover:bg-[#1b8fd6]', outline: 'border-[#21A9FD] text-[#21A9FD] hover:bg-[#21A9FD] hover:text-white' };
     if (acc === 'nuevo') 
-        return {   
-            header: 'bg-[#450786]',  
-            btn: 'bg-[#450786] hover:bg-[#5b0aa7]',  
-            outline: 'border-[#450786] text-[#450786] hover:bg-[#450786] hover:text-white' 
-        };
+        return { header: 'bg-[#450786]', btn: 'bg-[#450786] hover:bg-[#5b0aa7]', outline: 'border-[#450786] text-[#450786] hover:bg-[#450786] hover:text-white' };
     return { header: 'bg-gray-500', btn: 'bg-gray-500 hover:bg-gray-600', outline: 'border-gray-500 text-gray-500 hover:bg-gray-500 hover:text-white' };
 }
 
@@ -169,6 +162,7 @@ function formularioTitulo(acc) {
     if (acc === "editar") return "Editar Usuario";
     if (acc === "ver") return "Información del Usuario";
     if (acc === "borrar") return "Eliminar Usuario";
+    if (acc === "pdf") return "Generar Reporte en PDF";
     return "Nuevo Usuario";
 }
 
@@ -228,83 +222,102 @@ async function eliminarUsuario() {
     }
 }
 
-// Botón PDF (placeholder)
+// Botón PDF
 function descargarPDF() {
-    console.log("Función DESCARGAR PDF aún no implementada");
     mostrarToast({
         mensaje: "Función de exportar PDF aún no implementada",
         tipo: "warning"
     });
 }
+
+function onClickPDF() {
+    usuario = { ...usuarioVacio };   // opcional, podés pasar datos vacíos
+    accionFormulario = "pdf";
+    mostrarTituloUsuario = false;
+    mostrarFormulario = true;
+     imprimirUsuario(usuarioLocal);
+}
+
+
+let usuarioLocal = {
+  rol: "",
+  areas: [],
+  status: "Activo",
+  hasta: "",
+};
+
+
 </script>
 
 <ToastContainer />
 
-<div class="flex flex-col items-center w-full  transition-all duration-300"> 
+<!-- 🔹 CONTENEDOR FIJO -->
+<div class="titulo-fijo contenedor-fijo flex flex-col items-center w-full transition-all duration-300"> 
 
      <!-- Título dinámico -->
    {#if mostrarTituloUsuario}
-<div class="w-full flex items-center justify-center mt-8 mb-8">
-    <h1 class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg" style="background: #2a2f3a">
+<div class="w-full flex items-center justify-center mt-4 mb-4">
+    <h1 class="text-3xl font-bold text-white px-6 py-2 rounded-lg shadow-lg" style="background: #2a2f3a">
         {tituloUsuario}
     </h1>
 </div>
 {/if}
-    
-    <!-- Barra de búsqueda + botones -->
-    {#if !mostrarFormulario}
-    <div class="w-full flex justify-center mb-4">
-    
-  </div>
-    <div class="w-full flex items-center my-4">
-        <div class="flex items-center gap-2">
-            
-            <!-- Campo de búsqueda -->
-            <div class="relative w-64">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
-                <input
-                    type="text"
-                    class="w-full pl-10 bg-surface-700 text-onSurface border-none focus:outline-none focus:ring-0"
-                    placeholder="Buscar..."
-                    title="Buscar..."
-                    value={filtro}
-                    style="color: white; background:#2a2f3a; border: none; box-shadow: none;"
-                    oninput={onFiltroInput}
-                />
-            </div>
 
-            <!-- Botón Agregar Usuario -->
-            <button
-                class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-                style="background-color: #21A9FD; width: 32px; height: 32px;"
-                title="Nuevo Usuario"
-                onclick={abrirFormularioNuevo}
-            >
-                <Plus class="w-5 h-5" />
-            </button>
+    
+   <!-- Barra de búsqueda + botones -->
+   {#if !mostrarFormulario}
+   <div class="w-full flex items-center my-4 gap-2">
+       <div class="relative w-64">
+           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
+           <input
+               type="text"
+               class="w-full pl-10 bg-surface-700 text-onSurface border-none focus:outline-none focus:ring-0"
+               placeholder="Buscar..."
+               title="Buscar..."
+               value={filtro}
+               style="color: white; background:#2a2f3a; border: none; box-shadow: none;"
+               oninput={onFiltroInput}
+           />
+       </div>
 
-            <!-- Botón Descargar PDF -->
-            <button
-                class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
-                style="background-color: #323a49; width: 35px; height: 35px;"
-                title="Descargar PDF"
-                onclick={descargarPDF}
-            >
-                <FileText class="w-5 h-5" />
-            </button>
-        </div>
+       <!-- Botón Agregar Usuario -->
+       <button
+           class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+           style="background-color: #21A9FD; width: 32px; height: 32px;"
+           title="Nuevo Usuario"
+           onclick={abrirFormularioNuevo}
+       >
+           <Plus class="w-5 h-5" />
+       </button>
+
+       <!-- Botón Descargar PDF -->
+     <button
+  class="flex items-center justify-center p-2 rounded-full text-white hover:scale-110 transition"
+  style="background-color: #323a49; width: 35px; height: 35px;"
+  title="Abrir Formulario PDF"
+  onclick={onClickPDF}
+>
+  <FileText class="w-5 h-5" />
+</button>
+   </div>
+   {/if}
+
+   <!-- Formulario -->
+   <!-- Formulario -->
+{#if mostrarFormulario}
+<section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
+    <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
+        <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
+        <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
     </div>
-    {/if}
 
-    <!-- Formulario -->
-    {#if mostrarFormulario}
-    <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
-        <div class={`px-5 py-2 ${colores.header} text-white font-normal text-lg flex items-center justify-between`}>
-            <span style="text-transform: uppercase;">{formularioTitulo(accionFormulario)}</span>
-            <button class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition" style="background: transparent;" aria-label="Cerrar" onclick={cerrarFormulario}>x</button>
-        </div>
-
-        <div class="p-6 bg-[#212631] max-h-[70vh] overflow-y-auto">
+    <div class="p-6 bg-[#212631] max-h-[70vh] overflow-y-auto">
+        
+        {#if accionFormulario === 'pdf'}
+            <!-- 🔹 Formulario PDF en archivo separado -->
+            <FormularioPDF onCerrar={cerrarFormulario} />
+        {:else}
+            <!-- 🔹 Formulario de usuarios -->
             <FormularioUsuario 
                 {usuario} 
                 accionModal={accionFormulario}
@@ -313,6 +326,7 @@ function descargarPDF() {
                 ordenAgregar={accionFormulario === 'nuevo'} 
                 on:submit={guardarUsuario}
             />
+
             <div class="flex justify-end gap-2 mt-4">
                 {#if accionFormulario === 'nuevo' || accionFormulario === 'editar'}
                     <button type="submit" form="form-usuario" class={`px-4 py-2 rounded text-white ${colores.btn}`}>Guardar</button>
@@ -326,83 +340,87 @@ function descargarPDF() {
                     <button class={`px-4 py-2 rounded border ${colores.outline}`} onclick={cerrarFormulario}>Cerrar</button>
                 {/if}
             </div>
-        </div>
-    </section>
-    {/if}
-
-    <!-- Tabla -->
-    {#if !mostrarFormulario}
-    <div class="w-full">
-        <div class="overflow-x-auto rounded-lg shadow-lg">
-        <table class="w-full text-white rounded overflow-hidden" style="background-color: #212631; table-layout: auto;">
-            <thead style="background-color: #323a49;">
-                <tr>
-                    <th class="encabezado">NOMBRE Y APELLIDO</th>
-                    <th class="encabezado">ROL</th>
-                    <th class="encabezado">ESTADO</th>
-                    <th class="encabezado">ACCIONES</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#if usuariosPaginados.length === 0}
-                    <tr>
-                        <td colspan="4" class="text-center py-6 text-gray-400 italic">No se encontraron usuarios</td>
-                    </tr>
-                {:else}
-                    {#each usuariosPaginados as u}
-                        <tr class="border-b border-surface-700">
-                            <td class="px-4 py-2 flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-base" style="background-color: #4b4d56; color: #000000cc;">{u.name.charAt(0)}</div>
-                                <div>
-                                    <span>{u.name}</span><br />
-                                    <small class="user-subinfo">{u.email}</small>
-                                </div>
-                            </td>
-                            <td class="px-4 py-2">
-                                <span>{u.tipo}</span><br />
-                                <small class="user-subinfo">{u.area}</small>
-                            </td>
-                            <td class="px-4 py-2">
-                                <span class={`px-4 py-1 rounded text-xs ${getStatusClasses(u.estado)}`}>{u.estado}</span>
-                            </td>
-                            <td class="px-4 py-2 flex gap-2">
-    <button class="text-red-500 hover:scale-110" title="Eliminar Usuario" onclick={() => onClickBorrar(u)}>
-        <Trash2 class="w-4.3 h-5" />
-    </button>
-    <button class="text-blue-500 hover:scale-110" title="Editar Usuario" onclick={() => onClickEditar(u)}>
-        <Pencil class="w-4.3 h-5" />
-    </button>
-    <button class="text-green-500 hover:scale-110" title="Información del Usuario" onclick={() => onClickVer(u)}>
-        <Eye class="w-4.3  h-5" />
-    </button>
-</td>
-                        </tr>
-                    {/each}
-                {/if}
-            </tbody>
-        </table>
-</div>
-        <!-- Paginación -->
-        <div class="flex justify-between items-center mt-4 text-white">
-            <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
-                onclick={prevPage}
-                disabled={currentPage === 1}>
-                ⬅ Anterior
-            </button>
-
-            <span>Página {currentPage} de {totalPages}</span>
-
-            <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
-                onclick={nextPage}
-                disabled={currentPage === totalPages}>
-                Siguiente ➡
-            </button>
-        </div>
+        {/if}
     </div>
-    {/if}
+</section>
+{/if}
+
+
+   <!-- Tabla -->
+   {#if !mostrarFormulario}
+   <div class="w-full">
+       <div class="overflow-x-auto rounded-lg shadow-lg">
+       <table class="w-full text-white rounded overflow-hidden" style="background-color: #212631; table-layout: auto;">
+           <thead style="background-color: #323a49;">
+               <tr>
+                   <th class="encabezado">NOMBRE Y APELLIDO</th>
+                   <th class="encabezado">ROL</th>
+                   <th class="encabezado">ESTADO</th>
+                   <th class="encabezado">ACCIONES</th>
+               </tr>
+           </thead>
+           <tbody>
+               {#if usuariosPaginados.length === 0}
+                   <tr>
+                       <td colspan="4" class="text-center py-6 text-gray-400 italic">No se encontraron usuarios</td>
+                   </tr>
+               {:else}
+                   {#each usuariosPaginados as u}
+                       <tr class="border-b border-surface-700">
+                           <td class="px-4 py-2 flex items-center gap-3">
+                               <div class="w-10 h-10 rounded-full flex items-center justify-center text-base" style="background-color: #4b4d56; color: #000000cc;">{u.name.charAt(0)}</div>
+                               <div>
+                                   <span>{u.name}</span><br />
+                                   <small class="user-subinfo">{u.email}</small>
+                               </div>
+                           </td>
+                           <td class="px-4 py-2">
+                               <span>{u.tipo}</span><br />
+                               <small class="user-subinfo">{u.area}</small>
+                           </td>
+                           <td class="px-4 py-2">
+                               <span class={`px-4 py-1 rounded text-xs ${getStatusClasses(u.estado)}`}>{u.estado}</span>
+                           </td>
+                           <td class="px-4 py-2 flex gap-2">
+                               <button class="text-red-500 hover:scale-110" title="Eliminar Usuario" onclick={() => onClickBorrar(u)}>
+                                   <Trash2 class="w-4.3 h-5" />
+                               </button>
+                               <button class="text-blue-500 hover:scale-110" title="Editar Usuario" onclick={() => onClickEditar(u)}>
+                                   <Pencil class="w-4.3 h-5" />
+                               </button>
+                               <button class="text-green-500 hover:scale-110" title="Información del Usuario" onclick={() => onClickVer(u)}>
+                                   <Eye class="w-4.3  h-5" />
+                               </button>
+                           </td>
+                       </tr>
+                   {/each}
+               {/if}
+           </tbody>
+       </table>
+   </div>
+       <!-- Paginación -->
+       <div class="flex justify-between items-center mt-4 text-white">
+           <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
+               onclick={prevPage}
+               disabled={currentPage === 1}>
+               ⬅ Anterior
+           </button>
+
+           <span>Página {currentPage} de {totalPages}</span>
+
+           <button class="px-3 py-1 bg-[#323a49] rounded disabled:opacity-50"
+               onclick={nextPage}
+               disabled={currentPage === totalPages}>
+               Siguiente ➡
+           </button>
+       </div>
+   </div>
+   {/if}
 </div>
 
 <style>
+
+
 input::placeholder { color: #b0b0b0; opacity: 1; }
 input:focus { outline: none; box-shadow: none; border-color: inherit; }
 .bg-green-600 { background-color: #16a34a; }
@@ -413,7 +431,18 @@ input:focus { outline: none; box-shadow: none; border-color: inherit; }
 .shadow-lg { box-shadow: 0 4px 14px rgba(0,0,0,0.15);}
 .rounded-lg { border-radius: 0.5rem;}
 .user-subinfo { font-style: italic; color: #777 !important; }
-.encabezado { padding: 7px 18px; text-align: left;  font-size: 0.95rem; letter-spacing: 1px; font-weight: 400;  background: transparent; }
+.encabezado { padding: 7px 18px; text-align: left; font-size: 0.95rem; letter-spacing: 1px; font-weight: 400; background: transparent; }
 tbody tr:nth-child(odd) { background-color: #2a2f3a; }
 tbody tr:nth-child(even) { background-color: #212631; }
+
+
+.titulo-fijo h1 {
+  background: #2a2f3a;
+  color: white;
+  font-size: 1.8rem;
+  font-weight: bold;
+  padding: 0.75rem 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
 </style>
