@@ -74,17 +74,42 @@ export async function PUT({ request }) {
 
 // ➡️ Eliminar presupuesto
 // @ts-ignore
+// ➡️ Eliminar presupuesto
+// @ts-ignore
 export async function DELETE({ request }) {
   try {
     const { id_presu } = await request.json();
 
-    // @ts-ignore
-    await pool.execute(`DELETE FROM ct_presu WHERE ID = ?`, [id_presu]);
+    if (!id_presu) {
+      return json({ error: "Falta el ID del presupuesto" }, { status: 400 });
+    }
 
-    return json({ success: true });
+    // ⚡ Verificamos si existe
+    // @ts-ignore
+    const [rows] = await pool.execute(
+      "SELECT ID FROM ct_presu WHERE ID = ?",
+      [id_presu]
+    );
+    if (rows.length === 0) {
+      return json({ error: "Presupuesto no encontrado" }, { status: 404 });
+    }
+
+    // ⚡ Eliminamos
+    // @ts-ignore
+    const [result] = await pool.execute(
+      "DELETE FROM ct_presu WHERE ID = ?",
+      [id_presu]
+    );
+
+    if (result.affectedRows === 0) {
+      return json({ error: "No se eliminó el presupuesto" }, { status: 400 });
+    }
+
+    return json({ success: true, id_presu });
   } catch (err) {
-    console.error('❌ Error al eliminar presupuesto:', err);
+    console.error("❌ Error al eliminar presupuesto:", err);
     // @ts-ignore
     return json({ error: err.message }, { status: 500 });
   }
 }
+

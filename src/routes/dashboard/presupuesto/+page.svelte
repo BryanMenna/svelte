@@ -204,13 +204,34 @@ function editarRegistro(r) {
     fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
   };
 
-  // ❌ no llamar prepararAlta()
-  // ✅ usar directamente las fechas del registro
-  opcionesTipo = [...todasOpciones]; // o incluso dejar fijo según tu lógica
+  // Opciones (puede ser todas, o filtrar según lógica de negocio)
+  opcionesTipo = [...todasOpciones];
+
+  // 🔹 Recalcular límites igual que en alta
+  const anio = r.anio;
+  const registrosAnio = registros.filter(reg => reg.anio == anio);
+
+  const ultimaVig = registrosAnio
+    .map(reg => parseFecha(reg.fecha_vig, anio))
+    .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
+
+  const ultimaPro = registrosAnio
+    .map(reg => parseFecha(reg.fecha_pro, anio))
+    .reduce((max, d) => d > max ? d : max, new Date(`${anio}-01-01`));
+
+  const minAbs = new Date(`${anio}-01-02`);
+
+  const minVigDate = ultimaVig < minAbs ? minAbs : ultimaVig;
+  const minProDate = ultimaPro < minAbs ? minAbs : ultimaPro;
+
+  minVigencia = addDiasISO(minVigDate, 0);
+  minPromulgacion = addDiasISO(minProDate, 0);
+  maxFecha = `${anio}-12-31`;
 
   mostrarFormulario = true;
   mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
 }
+
 
 function verRegistro(r) {
   modo = "ver";
