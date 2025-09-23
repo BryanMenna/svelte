@@ -83,13 +83,15 @@ let itemsPerPageIng = 3;
 let currentPageIng = 1;
 
 // 🔹 Aplico filtro (Código y Detalle)
+// 🔹 Aplico filtro (ignora mayúsculas/minúsculas)
 $: ingresosFiltrados = ingresos.filter((ing) => {
-  const search = filtro.toLowerCase();
+  const search = filtro.trim().toLowerCase();   // lo que escribe el usuario
   return (
-    ing.Codigo?.toString().toLowerCase().includes(search) ||
-    ing.Detalle?.toLowerCase().includes(search)
+    ing.Codigo?.toString().toLowerCase().includes(search) ||  // código
+    ing.Detalle?.toString().toLowerCase().includes(search)    // detalle
   );
 });
+
 
 // 🔹 Calculo total de páginas en base a filtrados
 $: totalPagesIng = Math.max(Math.ceil(ingresosFiltrados.length / itemsPerPageIng), 1);
