@@ -100,14 +100,50 @@ async function guardarEgresoModal(egresoActualizado) {
 let modalEgreso = null;
 let modoModalEgreso = null;
 
+// 🔹 Enmascarar código
+export function masked_cod(cod) {
+  if (!cod) return "⚠️ Sin código";
+
+  cod = String(cod).replace(/\*/g, ""); // 🔹 limpio cualquier asterisco que venga de la BD
+  let pos = 0;
+  let resultado = "";
+
+  for (let i = 0; i < picIG.length && pos < cod.length; i++) {
+    if (picIG[i] === ".") {
+      resultado += ".";
+    } else {
+      resultado += cod[pos];
+      pos++;
+    }
+  }
+  return resultado;
+}
+
 // 🔹 Paginación
 let currentPage = 1;
 let itemsPerPage = 3;
-$: totalPages = Math.max(Math.ceil(egresos.length / itemsPerPage), 1);
-$: egresosPaginados = egresos.slice(
+
+// 👉 Aplico filtro dinámico
+$: egresosFiltrados = egresos.filter(eg => {
+  const buscar = filtroEgreso.toLowerCase();
+  const codigo = masked_cod(eg.Codigo).toLowerCase();
+  const detalle = (eg.Detalle || "").toLowerCase();
+
+  const matchTexto = codigo.includes(buscar) || detalle.includes(buscar);
+
+  const matchAnio = filtroAnioEgreso === "todos" 
+    ? true 
+    : new Date(eg.FechaVig).getFullYear() === Number(filtroAnioEgreso);
+
+  return matchTexto && matchAnio;
+});
+
+$: totalPages = Math.max(Math.ceil(egresosFiltrados.length / itemsPerPage), 1);
+$: egresosPaginados = egresosFiltrados.slice(
   (currentPage - 1) * itemsPerPage,
   currentPage * itemsPerPage
 );
+
 function nextPage() { if (currentPage < totalPages) currentPage++; }
 function prevPage() { if (currentPage > 1) currentPage--; }
 
@@ -138,49 +174,8 @@ function abrirEgresos() {
   moduloActual = "egresos";
   tituloActual = "Egresos";
 }
-
-// 🔹 Enmascarar código
-export function masked_cod(cod) {
-  if (!cod) return "⚠️ Sin código";
-
-  cod = String(cod).replace(/\*/g, ""); // 🔹 limpio cualquier asterisco que venga de la BD
-  let pos = 0;
-  let resultado = "";
-
-  for (let i = 0; i < picIG.length && pos < cod.length; i++) {
-    if (picIG[i] === ".") {
-      resultado += ".";
-    } else {
-      resultado += cod[pos];
-      pos++;
-    }
-  }
-  return resultado;
-}
-
-// 🔹 Primero filtramos por código o detalle
-$: egresosFiltrados = egresos.filter((eg) => {
-  const texto = filtroEgreso.toLowerCase().trim();
-  if (!texto) return true; // si no hay búsqueda, devuelve todo
-  return (
-    String(eg.Codigo).toLowerCase().includes(texto) ||
-    String(eg.Detalle).toLowerCase().includes(texto)
-  );
-});
-
-// 🔹 Luego aplicamos la paginación sobre los filtrados
-$: totalPages = Math.max(Math.ceil(egresosFiltrados.length / itemsPerPage), 1);
-$: egresosPaginados = egresosFiltrados.slice(
-  (currentPage - 1) * itemsPerPage,
-  currentPage * itemsPerPage
-);
-
-// Reset paginación cuando cambia búsqueda
-$: filtroEgreso, currentPage = 1;
-
-
-
 </script>
+
 
 {#if mostrarEgresos}
   <!-- Título -->
@@ -195,14 +190,13 @@ $: filtroEgreso, currentPage = 1;
     <div class="flex items-center gap-3">
       <div class="relative w-64">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
-       <input
-  type="text"
-  class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
-  placeholder="Buscar código o detalle..."
-  bind:value={filtroEgreso}
-  on:input={onFiltroEgreso}
-/>
-
+        <input
+          type="text"
+          class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
+          placeholder="Buscar fecha..."
+          bind:value={filtroEgreso}
+          on:input={onFiltroEgreso}
+        />
       </div>
 
       <!-- Botón agregar egreso -->
