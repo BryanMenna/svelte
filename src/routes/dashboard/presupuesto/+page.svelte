@@ -199,10 +199,13 @@ function agregarPresupuesto() {
 function editarRegistro(r) {
   modo = "editar";
   formData = {
-    ...r,
-    fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
-    fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
-  };
+  id_presu: r.id_presu,
+  tipo: r.tipo,
+  numero: r.numero,
+  fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+  fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro)
+};
+
 
   // Opciones (puede ser todas, o filtrar según lógica de negocio)
   opcionesTipo = [...todasOpciones];
@@ -287,7 +290,7 @@ export async function guardarPresupuesto(formData, modo) {
     const data = {
       id_presu: formData.id_presu ?? null,
       tipo: formData.tipo,
-      numero:  parseInt(formData.numero, 10),
+      numero: String(formData.numero).trim(),
       fecha_vig: formData.fecha_vig,
       fecha_pro: formData.fecha_pro
     };

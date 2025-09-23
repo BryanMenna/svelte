@@ -157,6 +157,29 @@ export function masked_cod(cod) {
   }
   return resultado;
 }
+
+// 🔹 Primero filtramos por código o detalle
+$: egresosFiltrados = egresos.filter((eg) => {
+  const texto = filtroEgreso.toLowerCase().trim();
+  if (!texto) return true; // si no hay búsqueda, devuelve todo
+  return (
+    String(eg.Codigo).toLowerCase().includes(texto) ||
+    String(eg.Detalle).toLowerCase().includes(texto)
+  );
+});
+
+// 🔹 Luego aplicamos la paginación sobre los filtrados
+$: totalPages = Math.max(Math.ceil(egresosFiltrados.length / itemsPerPage), 1);
+$: egresosPaginados = egresosFiltrados.slice(
+  (currentPage - 1) * itemsPerPage,
+  currentPage * itemsPerPage
+);
+
+// Reset paginación cuando cambia búsqueda
+$: filtroEgreso, currentPage = 1;
+
+
+
 </script>
 
 {#if mostrarEgresos}
@@ -172,13 +195,14 @@ export function masked_cod(cod) {
     <div class="flex items-center gap-3">
       <div class="relative w-64">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
-        <input
-          type="text"
-          class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
-          placeholder="Buscar fecha..."
-          bind:value={filtroEgreso}
-          on:input={onFiltroEgreso}
-        />
+       <input
+  type="text"
+  class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
+  placeholder="Buscar código o detalle..."
+  bind:value={filtroEgreso}
+  on:input={onFiltroEgreso}
+/>
+
       </div>
 
       <!-- Botón agregar egreso -->

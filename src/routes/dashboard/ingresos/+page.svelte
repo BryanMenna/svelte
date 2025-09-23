@@ -190,6 +190,25 @@ export function masked_cod(cod) {
   return resultado;
 }
 
+// 🔹 Primero filtramos por código o detalle
+$: ingresosFiltrados = ingresos.filter((ing) => {
+  const texto = filtro.toLowerCase().trim();
+  if (!texto) return true; // si no hay búsqueda, devuelve todo
+  return (
+    String(ing.Codigo).toLowerCase().includes(texto) ||
+    String(ing.Detalle).toLowerCase().includes(texto)
+  );
+});
+
+// 🔹 Luego aplicamos la paginación sobre los filtrados
+$: totalPagesIng = Math.max(Math.ceil(ingresosFiltrados.length / itemsPerPageIng), 1);
+$: ingresosPaginados = ingresosFiltrados.slice(
+  (currentPageIng - 1) * itemsPerPageIng,
+  currentPageIng * itemsPerPageIng
+);
+
+// Reset paginación cuando cambia búsqueda
+$: filtro, currentPageIng = 1;
 
 
 </script>
@@ -215,12 +234,12 @@ export function masked_cod(cod) {
       <div class="relative w-64">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
         <input
-          type="text"
-          class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
-          placeholder="Buscar fecha..."
-          bind:value={filtro}
-          on:input={onFiltroInput}
-        />
+  type="text"
+  class="w-full pl-10 bg-[#2a2f3a] text-white border-none rounded focus:outline-none"
+  placeholder="Buscar código o detalle..."
+  bind:value={filtro}
+  on:input={onFiltroInput}
+/>
       </div>
 
       <!-- Botón agregar presupuesto -->
