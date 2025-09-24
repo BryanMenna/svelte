@@ -5,6 +5,7 @@ import { mostrarToast } from '$lib/utils/mostrarToast.js';
 import { onMount } from 'svelte';
 import { Pencil, Eye, Trash2, Search, Plus, FileText } from 'lucide-svelte';
 import FormularioUsuario from '$lib/components/FormularioUsuario.svelte';
+import FormularioPDF from "$lib/components/FormularioPDF.svelte"; // importá el nuevo form
 
 let usuarios = [];
 let filtro = "";
@@ -222,28 +223,47 @@ async function eliminarUsuario() {
 
 // Botón PDF
 function descargarPDF() {
-    mostrarToast({
-        mensaje: "Función de exportar PDF aún no implementada",
-        tipo: "warning"
-    });
+     mostrarFormularioPDF = true;
 }
+
+let mostrarFormularioPDF = false;
+let datosPDF = { rol: "", area: "", estado: "Activo", hasta: "" };
 </script>
 
 <ToastContainer />
 
-<!-- 🔹 CONTENEDOR FIJO -->
-<div class="titulo-fijo contenedor-fijo flex flex-col items-center w-full transition-all duration-300"> 
+{#if mostrarFormularioPDF}
+  <!-- 👉 Solo se muestra el PDF -->
+  <section class="w-full rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 mt-12">
+    <div class="px-5 py-2 bg-[#323a49] text-white font-normal text-lg flex items-center justify-between">
+      <span style="text-transform: uppercase;">Formulario PDF</span>
+      <button
+        class="text-white hover:text-gray-100 text-2xl px-2 py-1 rounded transition"
+        style="background: transparent;"
+        onclick={() => (mostrarFormularioPDF = false)}>
+        x
+      </button>
+    </div>
+    <FormularioPDF 
+  {datosPDF} 
+  on:cerrar={() => (mostrarFormularioPDF = false)} 
+  on:pdfGenerado={() => mostrarToast({ mensaje: "✅ PDF generado correctamente", tipo: "success" })}
+/>
 
-     <!-- Título dinámico -->
-   {#if mostrarTituloUsuario}
-<div class="w-full flex items-center justify-center mt-4 mb-4">
-    <h1 class="text-3xl font-bold text-white px-6 py-2 rounded-lg shadow-lg" style="background: #2a2f3a">
-        {tituloUsuario}
-    </h1>
-</div>
-{/if}
+  </section>
+{:else}
+  <!-- 🔹 CONTENEDOR FIJO -->
+  <div class="titulo-fijo contenedor-fijo flex flex-col items-center w-full transition-all duration-300"> 
 
-    
+       <!-- Título dinámico -->
+     {#if mostrarTituloUsuario}
+    <div class="w-full flex items-center justify-center mt-4 mb-4">
+        <h1 class="text-3xl font-bold text-white px-6 py-2 rounded-lg shadow-lg" style="background: #2a2f3a">
+            {tituloUsuario}
+        </h1>
+    </div>
+    {/if}
+
    <!-- Barra de búsqueda + botones -->
    {#if !mostrarFormulario}
    <div class="w-full flex items-center my-4 gap-2">
@@ -386,7 +406,9 @@ function descargarPDF() {
        </div>
    </div>
    {/if}
-</div>
+  </div>
+{/if}
+
 
 <style>
 

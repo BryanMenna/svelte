@@ -120,6 +120,7 @@ function convertirDDMMYYYYaISO(str) {
 }
 
 let todasOpciones = ["Anual", "Reconducido", "Compensación", "Rectificación"];
+
 // Alta presupuesto
 function prepararAlta() {
   const anio = filtroAnio !== "todos" ? parseInt(filtroAnio) : new Date().getFullYear();
@@ -183,10 +184,6 @@ function prepararAlta() {
   }
 }
 
-
-
-
-
 // Acciones con Toast
 function agregarPresupuesto() {
   modo = "alta";
@@ -199,18 +196,15 @@ function agregarPresupuesto() {
 function editarRegistro(r) {
   modo = "editar";
   formData = {
-  id_presu: r.id_presu,
-  tipo: r.tipo,
-  numero: r.numero,
-  fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
-  fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro)
-};
+    id_presu: r.id_presu,
+    tipo: r.tipo,
+    numero: r.numero,
+    fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig),
+    fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro)
+  };
 
-
-  // Opciones (puede ser todas, o filtrar según lógica de negocio)
   opcionesTipo = [...todasOpciones];
 
-  // 🔹 Recalcular límites igual que en alta
   const anio = r.anio;
   const registrosAnio = registros.filter(reg => reg.anio == anio);
 
@@ -235,7 +229,6 @@ function editarRegistro(r) {
   mostrarToast({ mensaje: `Editando presupuesto ${r.numero}`, tipo: "primary" });
 }
 
-
 function verRegistro(r) {
   modo = "ver";
   formData = {
@@ -244,13 +237,11 @@ function verRegistro(r) {
     fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro),
   };
 
-  // ❌ no prepararAlta()
   opcionesTipo = [...todasOpciones];
 
   mostrarFormulario = true;
   mostrarToast({ mensaje: `Viendo presupuesto ${r.numero}`, tipo: "success" });
 }
-
 
 function abrirIngresos(r) {
   ingresosIdPresu = r.id_presu;
@@ -262,8 +253,6 @@ function abrirIngresos(r) {
   moduloActual = "ingresos";
   tituloActual = ingresosTitulo;
   mostrarIngresos = true;
-
-  
 
   fetch(`/api/ingresos/${ingresosIdPresu}?numero=${ingresosNumero}`)
     .then(res => res.ok ? res.json() : Promise.reject())
@@ -278,13 +267,10 @@ function cerrarIngresos() {
   mostrarIngresos = false;
   ingresos = [];
   tituloActual = "Presupuesto";
-   moduloActual = "presupuesto";
+  moduloActual = "presupuesto";
 }
 
-// Guardar presupuesto (alta, editar, eliminar)
-// utils/guardarPresupuesto.js
-
-// ⚡ Función de guardado del presupuesto
+// ⚡ Guardar presupuesto (alta, editar, eliminar)
 export async function guardarPresupuesto(formData, modo) {
   try {
     const data = {
@@ -325,7 +311,6 @@ export async function guardarPresupuesto(formData, modo) {
 
     const result = await response.json();
 
-    // ✅ Toasts
     if (modo === "alta") {
       mostrarToast({ mensaje: "Presupuesto creado con éxito", tipo: "success" });
     } else if (modo === "editar") {
@@ -342,8 +327,6 @@ export async function guardarPresupuesto(formData, modo) {
   }
 }
 
-
-
 function cerrarFormulario() {
   mostrarFormulario = false;
 }
@@ -353,7 +336,7 @@ onMount(() => {
 });
 
 // Máscara de códigos de partida
-export let picIG = "9.9.99.99.99"; // ejemplo
+export let picIG = "9.9.99.99.99"; 
 function masked_cod(partIN) {
   if (!partIN) return "";
   let posPart = 0;
@@ -361,13 +344,11 @@ function masked_cod(partIN) {
   for (let i = 0; i < picIG.length; i++) {
     if (picIG[i] === ".") resultado += ".";
     else {
-      if (posPart < partIN.length) resultado += partIN[posPart++];
-      else resultado += "0"; // rellena con 0 si falta
+      if (posPart < partIN.length) resultado += partIN[posPart++]; else resultado += "0"; 
     }
   }
   return resultado;
 }
-
 
 export function getPadre(partIN) {
   const conMascara = masked_cod(partIN);
@@ -387,12 +368,11 @@ function prepararEliminar(r) {
   formData = { ...r, fecha_vig: convertirDDMMYYYYaISO(r.fecha_vig), fecha_pro: convertirDDMMYYYYaISO(r.fecha_pro) };
   mostrarFormulario = true;
 }
+
 import { coloresModulo } from '$lib/utils/coloresModulo.js';
 let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
-
-
-
 </script>
+
 
 <ToastContainer />
 
@@ -407,7 +387,14 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
   />
 {:else}
   <!-- Título -->
- 
+  <div class="w-full flex items-center justify-center mt-4 mb-4">
+  <h1
+    class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg"
+    style="background: linear-gradient(90deg, {coloresModulo[moduloActual].start}, {coloresModulo[moduloActual].end});"
+  >
+    {tituloActual}
+  </h1>
+</div>
 
   <!-- Formulario -->
   {#if mostrarFormulario}
@@ -428,14 +415,7 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
        anioSeleccionado={anioSeleccionado}
     />
   {:else}    
- <div class="w-full flex items-center justify-center mt-4 mb-4">
-  <h1
-    class="text-3xl font-bold text-white px-6 py-3 rounded-lg shadow-lg"
-    style="background: linear-gradient(90deg, {coloresModulo[moduloActual].start}, {coloresModulo[moduloActual].end});"
-  >
-    {tituloActual}
-  </h1>
-</div>
+
 
     <!-- Tabla y filtros -->
     <div class="w-full flex items-center my-4 justify-between">
@@ -551,10 +531,10 @@ let moduloActual = "presupuesto"; // presupuesto | ingresos | egresos
     <button
       class="text-green-500 hover:scale-110"
       title="Ingresos"
-      on:click={() => {
-        abrirIngresos(r);
-        mostrarToast({ mensaje: `Abriendo ingresos de ${r.numero}`, tipo: "success" });
-      }}
+    on:click={() => {
+  mostrarToast({ mensaje: `Abriendo ingresos de ${r.numero}`, tipo: "success" });
+  abrirIngresos(r);
+}}
     >
       <Eye class="w-4.3 h-5" />
     </button>
@@ -586,6 +566,4 @@ tbody td { padding: 8px 12px;  }
 .promulgacion { font-size: 0.85rem; color: #bbb; }
 select { background-color: #323a49; color: white;  border-radius: 5px; }
 .select-container { border: 1px solid #323a49; border-radius: 5px; overflow: hidden; }
-
-
 </style>

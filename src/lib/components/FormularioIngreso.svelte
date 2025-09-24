@@ -217,32 +217,55 @@ function getTipoIT(it) {
     {/if}
 
     <!-- Botonera -->
-    <div class="ingreso-btn-actions">
-        <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-      {#if modo !== "consulta"}
-        <button type="submit"
-          class="px-4 py-2 rounded text-white font-medium transition"
-          style="background:{getColorsByModo(modo).base}"
-          on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
-          on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
-          {modo === "baja" ? "Eliminar" : "Guardar"}
-        </button>
-      {/if}
-      <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-      <button type="button" class="px-4 py-2 rounded font-medium ml-2"
-        style="border:1px solid {getColorsByModo(modo).base}; color:{getColorsByModo(modo).base}; background:transparent"
-        on:mouseover={(e) => {
-          e.currentTarget.style.background = getColorsByModo(modo).base;
-          e.currentTarget.style.color = "#fff";
-        }}
-        on:mouseout={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = getColorsByModo(modo).base;
-        }}
-        on:click={onCancelar}>
-        Cancelar
-      </button>
-    </div>
+ <!-- Botonera -->
+<div class="ingreso-btn-actions">
+  {#if modo === "consulta"}
+    <!-- Botón Cerrar -->
+    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+    <button type="button"
+      class="px-4 py-2 rounded font-medium ml-2"
+      style="border:1px solid {getColorsByModo(modo).base}; color:{getColorsByModo(modo).base}; background:transparent"
+      on:mouseover={(e) => {
+        e.currentTarget.style.background = getColorsByModo(modo).base;
+        e.currentTarget.style.color = "#fff";
+      }}
+      on:mouseout={(e) => {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = getColorsByModo(modo).base;
+      }}
+      on:click={() => dispatch("cancelar")}>
+      Cerrar
+    </button>
+  {:else}
+    <!-- Botón Guardar / Eliminar -->
+    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+    <button type="submit"
+      class="px-4 py-2 rounded text-white font-medium transition"
+      style="background:{getColorsByModo(modo).base}"
+      on:mouseover={(e) => e.currentTarget.style.background = getColorsByModo(modo).hover}
+      on:mouseout={(e) => e.currentTarget.style.background = getColorsByModo(modo).base}>
+      {modo === "baja" ? "Eliminar" : "Guardar"}
+    </button>
+
+    <!-- Botón Cancelar -->
+    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+    <button type="button"
+      class="px-4 py-2 rounded font-medium ml-2"
+      style="border:1px solid {getColorsByModo(modo).base}; color:{getColorsByModo(modo).base}; background:transparent"
+      on:mouseover={(e) => {
+        e.currentTarget.style.background = getColorsByModo(modo).base;
+        e.currentTarget.style.color = "#fff";
+      }}
+      on:mouseout={(e) => {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = getColorsByModo(modo).base;
+      }}
+      on:click={() => dispatch("cancelar")}>
+      Cancelar
+    </button>
+  {/if}
+</div>
+
   </form>
 </section>
 

@@ -12,6 +12,8 @@
         secondary: "bg-gray-500 text-white",
         default: "bg-slate-700 text-white"
     };
+
+    
 </script>
 
 <div class="fixed top-4 right-4 flex flex-col gap-3 z-[9999]">

@@ -4,6 +4,7 @@ import EgresosForm from "../../../lib/components/EgresosForm.svelte";
 import { Pencil, Trash2, Eye, DollarSign, Plus, FileText, Search } from "lucide-svelte";
 import { formatCurrency } from "$lib/utils/format.js";
 import { mostrarToast } from "$lib/utils/mostrarToast.js";
+import ToastContainer from '$lib/components/ToastContainer.svelte';
 
 import { coloresModulo } from '$lib/utils/coloresModulo.js';
 export let picIG = "9.9.99.99.99";
@@ -175,7 +176,7 @@ function abrirEgresos() {
   tituloActual = "Egresos";
 }
 </script>
-
+<ToastContainer />
 
 {#if mostrarEgresos}
   <!-- Título -->
@@ -280,28 +281,56 @@ function abrirEgresos() {
                     </span>
                   </td>
                   <td class="px-2 py-1">{formatCurrency(eg.Presu)}</td>
-                  <td class="px-2 py-1 flex gap-2 justify-center items-center">
-                    <!-- Eliminar -->
-                    <button class="text-red-500 hover:scale-110" title="Eliminar"
-                      on:click={() => { abrirFormularioEgreso(eg, "baja"); }}>
-                      <Trash2 class="w-5 h-5" />
-                    </button>
-                    <!-- Editar -->
-                    <button class="text-blue-500 hover:scale-110" title="Editar"
-                      on:click={() => { abrirFormularioEgreso(eg, "modificar"); }}>
-                      <Pencil class="w-5 h-5" />
-                    </button>
-                    <!-- Ver -->
-                    <button class="text-green-500 hover:scale-110" title="Ver"
-                      on:click={() => { abrirFormularioEgreso(eg, "consulta"); }}>
-                      <Eye class="w-5 h-5" />
-                    </button>
-                    <!-- Presupuesto -->
-                    <button class="text-yellow-400 hover:scale-110" title="Dinero"
-                      on:click={() => { abrirFormularioEgreso(eg, "presu"); }}>
-                      <DollarSign class="w-5 h-5" />
-                    </button>
-                  </td>
+                 <td class="px-2 py-1 flex gap-2 justify-center items-center">
+  <!-- Eliminar -->
+  <button class="text-red-500 hover:scale-110" title="Eliminar"
+    on:click={() => { 
+      abrirFormularioEgreso(eg, "baja"); 
+      mostrarToast({ 
+        mensaje: `Eliminando egreso - Código: ${masked_cod(eg.Codigo)}`, 
+        tipo: "danger" 
+      });
+    }}>
+    <Trash2 class="w-5 h-5" />
+  </button>
+
+  <!-- Editar -->
+  <button class="text-blue-500 hover:scale-110" title="Editar"
+    on:click={() => { 
+      abrirFormularioEgreso(eg, "modificar"); 
+      mostrarToast({ 
+        mensaje: `Editando egreso - Código: ${masked_cod(eg.Codigo)}`, 
+        tipo: "info" 
+      });
+    }}>
+    <Pencil class="w-5 h-5" />
+  </button>
+
+  <!-- Ver -->
+  <button class="text-green-500 hover:scale-110" title="Ver"
+    on:click={() => { 
+      abrirFormularioEgreso(eg, "consulta"); 
+      mostrarToast({ 
+        mensaje: `Visualizando egreso - Código: ${masked_cod(eg.Codigo)}`, 
+        tipo: "success" 
+      });
+    }}>
+    <Eye class="w-5 h-5" />
+  </button>
+
+  <!-- Presupuesto -->
+  <button class="text-yellow-400 hover:scale-110" title="Dinero"
+    on:click={() => { 
+      abrirFormularioEgreso(eg, "presu"); 
+      mostrarToast({ 
+        mensaje: `Modo presupuesto - Código: ${masked_cod(eg.Codigo)}`, 
+        tipo: "warning" 
+      });
+    }}>
+    <DollarSign class="w-5 h-5" />
+  </button>
+</td>
+
                 </tr>
               {/each}
             {/if}
